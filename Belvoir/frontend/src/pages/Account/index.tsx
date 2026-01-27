@@ -1,45 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate, stagger } from 'animejs';
 import {
-  User,
   Package,
   MapPin,
-  Settings,
-  LogOut,
-  ChevronRight,
+  Mail,
+  Plus,
   Edit2,
   Trash2,
-  Plus,
-  Eye,
-  Truck,
   CheckCircle,
-  Clock,
-  XCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Modal } from '../../components/ui';
-import { PageTransition, FadeIn } from '../../components/animations';
+import { PageTransition } from '../../components/animations';
 import { toast } from '../../store/uiStore';
-import { formatPrice } from '../../data/products';
-import type { Address, Order } from '../../types';
+import {
+  ContaSidebar,
+  ContaStatCard,
+  PedidoCard,
+  EmptyState,
+} from '../../components/conta';
+import type { Address } from '../../types';
 
 type TabType = 'overview' | 'orders' | 'addresses' | 'settings';
-
-const tabs = [
-  { id: 'overview' as TabType, label: 'Visão Geral', icon: User },
-  { id: 'orders' as TabType, label: 'Meus Pedidos', icon: Package },
-  { id: 'addresses' as TabType, label: 'Endereços', icon: MapPin },
-  { id: 'settings' as TabType, label: 'Configurações', icon: Settings },
-];
-
-const orderStatusConfig = {
-  pending: { label: 'Pendente', color: 'text-yellow-600 bg-yellow-100', icon: Clock },
-  processing: { label: 'Processando', color: 'text-blue-600 bg-blue-100', icon: Package },
-  shipped: { label: 'Enviado', color: 'text-purple-600 bg-purple-100', icon: Truck },
-  delivered: { label: 'Entregue', color: 'text-green-600 bg-green-100', icon: CheckCircle },
-  cancelled: { label: 'Cancelado', color: 'text-red-600 bg-red-100', icon: XCircle },
-};
 
 export const AccountPage = () => {
   const navigate = useNavigate();
@@ -78,6 +62,10 @@ export const AccountPage = () => {
     phone: customer?.phone || '',
   });
 
+  // Refs for animations
+  const statCardsRef = useRef<HTMLDivElement>(null);
+  const ordersRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/conta' } });
@@ -99,6 +87,40 @@ export const AccountPage = () => {
       });
     }
   }, [customer]);
+
+  // Animate stat cards on mount
+  useEffect(() => {
+    if (statCardsRef.current && activeTab === 'overview') {
+      animate(statCardsRef.current.children, {
+        translateY: [30, 0],
+        opacity: [0, 1],
+        duration: 600,
+        easing: 'easeOutExpo',
+        delay: stagger(100, { start: 400 }),
+      });
+    }
+  }, [activeTab]);
+
+  // Animate orders section on mount
+  useEffect(() => {
+    if (ordersRef.current && activeTab === 'overview') {
+      animate(ordersRef.current, {
+        translateY: [20, 0],
+        opacity: [0, 1],
+        duration: 600,
+        easing: 'easeOutExpo',
+        delay: 700,
+      });
+
+      animate('.order-card', {
+        translateY: [15, 0],
+        opacity: [0, 1],
+        duration: 500,
+        easing: 'easeOutExpo',
+        delay: stagger(80, { start: 900 }),
+      });
+    }
+  }, [activeTab]);
 
   const handleLogout = () => {
     logout();
@@ -179,364 +201,369 @@ export const AccountPage = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-secondary-50 py-8 md:py-12">
-        <div className="container-custom">
-          {/* Header */}
-          <FadeIn>
-            <div className="mb-8">
-              <h1 className="font-display text-3xl md:text-4xl text-charcoal mb-2">
-                Minha Conta
-              </h1>
-              <p className="text-secondary-500">
-                Olá, {customer.firstName}! Gerencie suas informações e pedidos.
-              </p>
-            </div>
-          </FadeIn>
+      <div className="min-h-screen bg-cream">
+        <div className="container-custom py-8 pt-28">
+          {/* Breadcrumb */}
+          <nav className="mb-6">
+            <ol className="flex items-center gap-2 text-sm">
+              <li>
+                <Link
+                  to="/"
+                  className="text-secondary-500 hover:text-primary-500 transition-colors"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <span className="text-secondary-400">/</span>
+              </li>
+              <li>
+                <span className="text-charcoal font-medium">Minha Conta</span>
+              </li>
+            </ol>
+          </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Page Header */}
+          <div className="mb-10">
+            <h1 className="text-3xl md:text-4xl font-display font-semibold text-charcoal mb-2">
+              Minha Conta
+            </h1>
+            <p className="text-secondary-500 text-lg">
+              Olá, {customer.firstName}! Gerencie suas informações e pedidos.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Sidebar */}
-            <FadeIn delay={0.1}>
-              <aside className="lg:col-span-1">
-                <div className="bg-white shadow-sm p-4 sticky top-24">
-                  <nav className="space-y-1">
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`
-                          w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                          ${activeTab === tab.id
-                            ? 'bg-charcoal text-white'
-                            : 'text-secondary-600 hover:bg-secondary-100'
+            <ContaSidebar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onLogout={handleLogout}
+              customer={customer}
+              ordersCount={orders.length}
+            />
+
+            {/* Main Content */}
+            <main className="lg:col-span-9">
+              <AnimatePresence mode="wait">
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                  >
+                    {/* Stat Cards */}
+                    <div
+                      ref={statCardsRef}
+                      className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                    >
+                      <div style={{ opacity: 0 }}>
+                        <ContaStatCard
+                          icon={<Package className="w-6 h-6" />}
+                          value={orders.length}
+                          label="Pedidos Ativos"
+                          variant="primary"
+                          badge={
+                            orders.length > 0
+                              ? { text: `${orders.length} total`, type: 'info' }
+                              : undefined
                           }
-                        `}
-                      >
-                        <tab.icon size={20} />
-                        <span className="font-medium">{tab.label}</span>
-                        <ChevronRight
-                          size={16}
-                          className={`ml-auto transition-transform ${
-                            activeTab === tab.id ? 'rotate-90' : ''
-                          }`}
+                          linkText="Ver detalhes"
+                          onLinkClick={() => setActiveTab('orders')}
                         />
-                      </button>
-                    ))}
-                  </nav>
+                      </div>
+                      <div style={{ opacity: 0 }}>
+                        <ContaStatCard
+                          icon={<MapPin className="w-6 h-6" />}
+                          value={customer.addresses.length}
+                          label="Endereços Salvos"
+                          variant="secondary"
+                          linkText="Adicionar endereço"
+                          onLinkClick={() => {
+                            setActiveTab('addresses');
+                            handleOpenAddressModal();
+                          }}
+                        />
+                      </div>
+                      <div style={{ opacity: 0 }}>
+                        <ContaStatCard
+                          icon={<Mail className="w-6 h-6" />}
+                          value={customer.email.split('@')[0]}
+                          label="Email da Conta"
+                          variant="accent"
+                          badge={{ text: 'Verificado', type: 'verified' }}
+                          linkText="Editar perfil"
+                          onLinkClick={() => setActiveTab('settings')}
+                        />
+                      </div>
+                    </div>
 
-                  <div className="mt-6 pt-6 border-t border-secondary-100">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    {/* Recent Orders Section */}
+                    <section
+                      ref={ordersRef}
+                      className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100"
+                      style={{ opacity: 0 }}
                     >
-                      <LogOut size={20} />
-                      <span className="font-medium">Sair</span>
-                    </button>
-                  </div>
-                </div>
-              </aside>
-            </FadeIn>
-
-            {/* Content */}
-            <FadeIn delay={0.2}>
-              <main className="lg:col-span-3">
-                <AnimatePresence mode="wait">
-                  {/* Overview Tab */}
-                  {activeTab === 'overview' && (
-                    <motion.div
-                      key="overview"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="space-y-6"
-                    >
-                      {/* Quick Stats */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white p-5 shadow-sm rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center shrink-0">
-                              <Package size={24} className="text-primary-600" />
-                            </div>
-                            <div>
-                              <p className="text-2xl font-display font-semibold">{orders.length}</p>
-                              <p className="text-sm text-secondary-500">Pedidos</p>
-                            </div>
-                          </div>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h2 className="text-xl font-display font-semibold text-charcoal mb-1">
+                            Pedidos Recentes
+                          </h2>
+                          <p className="text-secondary-500 text-sm">
+                            Acompanhe seus últimos pedidos
+                          </p>
                         </div>
-                        <div className="bg-white p-5 shadow-sm rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
-                              <MapPin size={24} className="text-green-600" />
-                            </div>
-                            <div>
-                              <p className="text-2xl font-display font-semibold">
-                                {customer.addresses.length}
-                              </p>
-                              <p className="text-sm text-secondary-500">Endereços</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-white p-5 shadow-sm rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                              <User size={24} className="text-blue-600" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate max-w-[180px]" title={customer.email}>
-                                {customer.email}
-                              </p>
-                              <p className="text-sm text-secondary-500">Email</p>
-                            </div>
-                          </div>
-                        </div>
+                        <button
+                          onClick={() => setActiveTab('orders')}
+                          className="px-5 py-2.5 bg-charcoal text-white rounded-lg font-medium hover:bg-secondary-800 transition-all duration-300"
+                        >
+                          Ver Todos
+                        </button>
                       </div>
 
-                      {/* Recent Orders */}
-                      <div className="bg-white shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="font-display text-xl">Pedidos Recentes</h2>
-                          <button
-                            onClick={() => setActiveTab('orders')}
-                            className="text-sm text-primary-600 hover:text-primary-700"
-                          >
-                            Ver todos
-                          </button>
+                      {orders.length > 0 ? (
+                        <div className="space-y-3">
+                          {orders.slice(0, 3).map((order) => (
+                            <PedidoCard key={order.id} order={order} compact />
+                          ))}
                         </div>
+                      ) : (
+                        <EmptyState
+                          icon={<Package className="w-12 h-12" />}
+                          title="Nenhum pedido ainda"
+                          description="Comece a explorar nossa coleção"
+                          actionText="Ver Coleção"
+                          actionLink="/shop"
+                        />
+                      )}
+                    </section>
+                  </motion.div>
+                )}
 
-                        {orders.length > 0 ? (
-                          <div className="space-y-4">
-                            {orders.slice(0, 3).map((order) => (
-                              <OrderCard key={order.id} order={order} compact />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-secondary-500">
-                            <Package size={48} className="mx-auto mb-4 opacity-30" />
-                            <p>Você ainda não tem pedidos</p>
-                            <Link to="/shop" className="text-primary-600 hover:underline mt-2 block">
-                              Explorar produtos
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
+                {/* Orders Tab */}
+                {activeTab === 'orders' && (
+                  <motion.div
+                    key="orders"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100">
+                      <h2 className="text-xl font-display font-semibold text-charcoal mb-6">
+                        Meus Pedidos
+                      </h2>
 
-                  {/* Orders Tab */}
-                  {activeTab === 'orders' && (
-                    <motion.div
-                      key="orders"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                    >
-                      <div className="bg-white shadow-sm p-6">
-                        <h2 className="font-display text-xl mb-6">Meus Pedidos</h2>
-
-                        {orders.length > 0 ? (
-                          <div className="space-y-4">
-                            {orders.map((order) => (
-                              <OrderCard key={order.id} order={order} />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 text-secondary-500">
-                            <Package size={64} className="mx-auto mb-4 opacity-30" />
-                            <p className="text-lg mb-2">Nenhum pedido encontrado</p>
-                            <p className="text-sm mb-4">
-                              Quando você fizer uma compra, seus pedidos aparecerão aqui.
-                            </p>
-                            <Link to="/shop">
-                              <Button variant="primary">Explorar Produtos</Button>
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Addresses Tab */}
-                  {activeTab === 'addresses' && (
-                    <motion.div
-                      key="addresses"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                    >
-                      <div className="bg-white shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h2 className="font-display text-xl">Meus Endereços</h2>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleOpenAddressModal()}
-                          >
-                            <Plus size={16} className="mr-2" />
-                            Adicionar
-                          </Button>
+                      {orders.length > 0 ? (
+                        <div className="space-y-4">
+                          {orders.map((order) => (
+                            <PedidoCard key={order.id} order={order} />
+                          ))}
                         </div>
+                      ) : (
+                        <EmptyState
+                          icon={<Package className="w-16 h-16" />}
+                          title="Nenhum pedido encontrado"
+                          description="Quando você fizer uma compra, seus pedidos aparecerão aqui."
+                          actionText="Explorar Produtos"
+                          actionLink="/shop"
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
 
-                        {customer.addresses.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {customer.addresses.map((address, index) => (
-                              <div
-                                key={index}
-                                className={`p-4 border rounded-lg ${
-                                  customer.defaultAddress === address
-                                    ? 'border-primary-500 bg-primary-50'
-                                    : 'border-secondary-200'
-                                }`}
-                              >
-                                {customer.defaultAddress === address && (
-                                  <span className="inline-block text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded mb-2">
-                                    Padrão
-                                  </span>
-                                )}
-                                <p className="font-medium">
-                                  {address.firstName} {address.lastName}
-                                </p>
-                                <p className="text-sm text-secondary-600">
-                                  {address.address1}
-                                  {address.address2 && `, ${address.address2}`}
-                                </p>
-                                <p className="text-sm text-secondary-600">
-                                  {address.city}, {address.state} - {address.zipCode}
-                                </p>
-                                <p className="text-sm text-secondary-600">{address.phone}</p>
-
-                                <div className="flex gap-2 mt-4">
-                                  <button
-                                    onClick={() => handleOpenAddressModal(index)}
-                                    className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                                  >
-                                    <Edit2 size={14} />
-                                    Editar
-                                  </button>
-                                  {customer.defaultAddress !== address && (
-                                    <>
-                                      <button
-                                        onClick={() => handleSetDefault(index)}
-                                        className="text-sm text-secondary-600 hover:text-secondary-700 flex items-center gap-1"
-                                      >
-                                        Definir como padrão
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteAddress(index)}
-                                        className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
-                                      >
-                                        <Trash2 size={14} />
-                                        Remover
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 text-secondary-500">
-                            <MapPin size={64} className="mx-auto mb-4 opacity-30" />
-                            <p className="text-lg mb-2">Nenhum endereço cadastrado</p>
-                            <p className="text-sm mb-4">
-                              Adicione um endereço para facilitar suas compras.
-                            </p>
-                            <Button variant="secondary" onClick={() => handleOpenAddressModal()}>
-                              <Plus size={16} className="mr-2" />
-                              Adicionar Endereço
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Settings Tab */}
-                  {activeTab === 'settings' && (
-                    <motion.div
-                      key="settings"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="space-y-6"
-                    >
-                      {/* Profile Settings */}
-                      <div className="bg-white shadow-sm p-6">
-                        <h2 className="font-display text-xl mb-6">Dados Pessoais</h2>
-
-                        <div className="space-y-4 max-w-md">
-                          <div className="grid grid-cols-2 gap-4">
-                            <Input
-                              label="Nome"
-                              value={profileForm.firstName}
-                              onChange={(e) =>
-                                setProfileForm({ ...profileForm, firstName: e.target.value })
-                              }
-                            />
-                            <Input
-                              label="Sobrenome"
-                              value={profileForm.lastName}
-                              onChange={(e) =>
-                                setProfileForm({ ...profileForm, lastName: e.target.value })
-                              }
-                            />
-                          </div>
-
-                          <Input label="Email" value={customer.email} disabled />
-
-                          <Input
-                            label="Telefone"
-                            value={profileForm.phone}
-                            onChange={(e) =>
-                              setProfileForm({ ...profileForm, phone: e.target.value })
-                            }
-                            placeholder="(11) 99999-9999"
-                          />
-
-                          <Button onClick={handleSaveProfile} isLoading={isLoading}>
-                            Salvar Alterações
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Email Preferences */}
-                      <div className="bg-white shadow-sm p-6">
-                        <h2 className="font-display text-xl mb-6">Preferências de Email</h2>
-
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={customer.acceptsMarketing}
-                            onChange={async (e) => {
-                              await updateProfile({ acceptsMarketing: e.target.checked });
-                              toast.success('Preferências atualizadas');
-                            }}
-                            className="w-4 h-4 text-primary-500 rounded border-secondary-300"
-                          />
-                          <span className="text-secondary-700">
-                            Receber novidades e ofertas exclusivas por email
-                          </span>
-                        </label>
-                      </div>
-
-                      {/* Danger Zone */}
-                      <div className="bg-white shadow-sm p-6 border border-red-100">
-                        <h2 className="font-display text-xl mb-4 text-red-600">Zona de Perigo</h2>
-                        <p className="text-sm text-secondary-600 mb-4">
-                          Ao excluir sua conta, todos os seus dados serão permanentemente removidos.
-                          Esta ação não pode ser desfeita.
-                        </p>
+                {/* Addresses Tab */}
+                {activeTab === 'addresses' && (
+                  <motion.div
+                    key="addresses"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-display font-semibold text-charcoal">
+                          Meus Endereços
+                        </h2>
                         <Button
                           variant="secondary"
-                          className="border-red-300 text-red-600 hover:bg-red-50"
-                          onClick={() => toast.info('Entre em contato conosco para excluir sua conta')}
+                          onClick={() => handleOpenAddressModal()}
+                          className="flex items-center gap-2"
                         >
-                          Excluir Conta
+                          <Plus size={16} />
+                          Adicionar
                         </Button>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </main>
-            </FadeIn>
+
+                      {customer.addresses.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {customer.addresses.map((address, index) => (
+                            <div
+                              key={index}
+                              className={`p-4 border rounded-lg transition-all duration-300 hover:shadow-sm ${
+                                customer.defaultAddress === address
+                                  ? 'border-primary-400 bg-primary-50'
+                                  : 'border-secondary-200 hover:border-secondary-300'
+                              }`}
+                            >
+                              {customer.defaultAddress === address && (
+                                <span className="inline-flex items-center text-xs font-medium text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full mb-2">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Padrão
+                                </span>
+                              )}
+                              <p className="font-medium text-charcoal">
+                                {address.firstName} {address.lastName}
+                              </p>
+                              <p className="text-sm text-secondary-600 mt-1">
+                                {address.address1}
+                                {address.address2 && `, ${address.address2}`}
+                              </p>
+                              <p className="text-sm text-secondary-600">
+                                {address.city}, {address.state} - {address.zipCode}
+                              </p>
+                              <p className="text-sm text-secondary-600">{address.phone}</p>
+
+                              <div className="flex gap-3 mt-4 pt-3 border-t border-secondary-100">
+                                <button
+                                  onClick={() => handleOpenAddressModal(index)}
+                                  className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 font-medium"
+                                >
+                                  <Edit2 size={14} />
+                                  Editar
+                                </button>
+                                {customer.defaultAddress !== address && (
+                                  <>
+                                    <button
+                                      onClick={() => handleSetDefault(index)}
+                                      className="text-sm text-secondary-600 hover:text-charcoal font-medium"
+                                    >
+                                      Definir como padrão
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteAddress(index)}
+                                      className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
+                                    >
+                                      <Trash2 size={14} />
+                                      Remover
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState
+                          icon={<MapPin className="w-16 h-16" />}
+                          title="Nenhum endereço cadastrado"
+                          description="Adicione um endereço para facilitar suas compras."
+                          actionText="Adicionar Endereço"
+                          onAction={() => handleOpenAddressModal()}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Settings Tab */}
+                {activeTab === 'settings' && (
+                  <motion.div
+                    key="settings"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                  >
+                    {/* Profile Settings */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100">
+                      <h2 className="text-xl font-display font-semibold text-charcoal mb-6">
+                        Dados Pessoais
+                      </h2>
+
+                      <div className="space-y-4 max-w-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input
+                            label="Nome"
+                            value={profileForm.firstName}
+                            onChange={(e) =>
+                              setProfileForm({ ...profileForm, firstName: e.target.value })
+                            }
+                          />
+                          <Input
+                            label="Sobrenome"
+                            value={profileForm.lastName}
+                            onChange={(e) =>
+                              setProfileForm({ ...profileForm, lastName: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <Input label="Email" value={customer.email} disabled />
+
+                        <Input
+                          label="Telefone"
+                          value={profileForm.phone}
+                          onChange={(e) =>
+                            setProfileForm({ ...profileForm, phone: e.target.value })
+                          }
+                          placeholder="(11) 99999-9999"
+                        />
+
+                        <Button onClick={handleSaveProfile} isLoading={isLoading}>
+                          Salvar Alterações
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Email Preferences */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100">
+                      <h2 className="text-xl font-display font-semibold text-charcoal mb-6">
+                        Preferências de Email
+                      </h2>
+
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={customer.acceptsMarketing}
+                          onChange={async (e) => {
+                            await updateProfile({ acceptsMarketing: e.target.checked });
+                            toast.success('Preferências atualizadas');
+                          }}
+                          className="w-4 h-4 text-primary-500 rounded border-secondary-300 focus:ring-primary-500"
+                        />
+                        <span className="text-secondary-700">
+                          Receber novidades e ofertas exclusivas por email
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 border border-red-200">
+                      <h2 className="text-xl font-display font-semibold text-red-600 mb-4">
+                        Zona de Perigo
+                      </h2>
+                      <p className="text-sm text-secondary-600 mb-4">
+                        Ao excluir sua conta, todos os seus dados serão permanentemente
+                        removidos. Esta ação não pode ser desfeita.
+                      </p>
+                      <Button
+                        variant="secondary"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() =>
+                          toast.info('Entre em contato conosco para excluir sua conta')
+                        }
+                      >
+                        Excluir Conta
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </main>
           </div>
         </div>
       </div>
@@ -632,68 +659,6 @@ export const AccountPage = () => {
         </form>
       </Modal>
     </PageTransition>
-  );
-};
-
-// Order Card Component
-const OrderCard = ({ order, compact = false }: { order: Order; compact?: boolean }) => {
-  const status = orderStatusConfig[order.status];
-  const StatusIcon = status.icon;
-
-  return (
-    <div className="border border-secondary-200 rounded-lg p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="font-medium">{order.orderNumber}</p>
-          <p className="text-sm text-secondary-500">
-            {new Date(order.createdAt).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${status.color}`}>
-          <StatusIcon size={12} />
-          {status.label}
-        </span>
-      </div>
-
-      {!compact && (
-        <div className="space-y-2 mb-3">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex gap-3">
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-12 h-12 object-cover rounded"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{item.title}</p>
-                <p className="text-xs text-secondary-500">{item.variantTitle}</p>
-                <p className="text-xs text-secondary-500">Qtd: {item.quantity}</p>
-              </div>
-              <p className="text-sm font-medium">{formatPrice(item.price)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between pt-3 border-t border-secondary-100">
-        <p className="font-medium">Total: {formatPrice(order.total)}</p>
-        {order.trackingUrl && (
-          <a
-            href={order.trackingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-          >
-            <Eye size={14} />
-            Rastrear
-          </a>
-        )}
-      </div>
-    </div>
   );
 };
 
