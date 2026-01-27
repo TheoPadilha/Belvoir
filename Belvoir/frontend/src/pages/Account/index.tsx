@@ -88,39 +88,29 @@ export const AccountPage = () => {
     }
   }, [customer]);
 
-  // Animate stat cards on mount
-  useEffect(() => {
-    if (statCardsRef.current && activeTab === 'overview') {
+  // Function to animate overview content - called after framer-motion animation completes
+  const animateOverviewContent = () => {
+    // Animate stat cards
+    if (statCardsRef.current && statCardsRef.current.children.length > 0) {
       animate(statCardsRef.current.children, {
         translateY: [30, 0],
         opacity: [0, 1],
         duration: 600,
         easing: 'easeOutExpo',
-        delay: stagger(100, { start: 400 }),
+        delay: stagger(100, { start: 50 }),
       });
     }
-  }, [activeTab]);
 
-  // Animate orders section on mount
-  useEffect(() => {
-    if (ordersRef.current && activeTab === 'overview') {
+    // Animate orders section
+    if (ordersRef.current) {
       animate(ordersRef.current, {
         translateY: [20, 0],
         opacity: [0, 1],
         duration: 600,
         easing: 'easeOutExpo',
-        delay: 700,
-      });
-
-      animate('.order-card', {
-        translateY: [15, 0],
-        opacity: [0, 1],
-        duration: 500,
-        easing: 'easeOutExpo',
-        delay: stagger(80, { start: 900 }),
       });
     }
-  }, [activeTab]);
+  };
 
   const handleLogout = () => {
     logout();
@@ -253,6 +243,7 @@ export const AccountPage = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
+                    onAnimationComplete={animateOverviewContent}
                     className="space-y-6"
                   >
                     {/* Stat Cards */}
@@ -260,7 +251,7 @@ export const AccountPage = () => {
                       ref={statCardsRef}
                       className="grid grid-cols-1 md:grid-cols-3 gap-4"
                     >
-                      <div style={{ opacity: 0 }}>
+                      <div className="opacity-0 translate-y-[30px]">
                         <ContaStatCard
                           icon={<Package className="w-6 h-6" />}
                           value={orders.length}
@@ -275,7 +266,7 @@ export const AccountPage = () => {
                           onLinkClick={() => setActiveTab('orders')}
                         />
                       </div>
-                      <div style={{ opacity: 0 }}>
+                      <div className="opacity-0 translate-y-[30px]">
                         <ContaStatCard
                           icon={<MapPin className="w-6 h-6" />}
                           value={customer.addresses.length}
@@ -288,7 +279,7 @@ export const AccountPage = () => {
                           }}
                         />
                       </div>
-                      <div style={{ opacity: 0 }}>
+                      <div className="opacity-0 translate-y-[30px]">
                         <ContaStatCard
                           icon={<Mail className="w-6 h-6" />}
                           value={customer.email.split('@')[0]}
@@ -304,8 +295,7 @@ export const AccountPage = () => {
                     {/* Recent Orders Section */}
                     <section
                       ref={ordersRef}
-                      className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100"
-                      style={{ opacity: 0 }}
+                      className="bg-white rounded-lg shadow-sm p-6 border border-secondary-100 opacity-0 translate-y-[20px]"
                     >
                       <div className="flex items-center justify-between mb-6">
                         <div>

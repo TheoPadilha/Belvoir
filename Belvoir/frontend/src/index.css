@@ -1138,3 +1138,16 @@ html.is-animating .transition-fade {
 .max-w-\[180px\] {
   max-width: 180px;
 }
+
+/* Translate utilities for animations */
+.translate-y-\[30px\] {
+  transform: translateY(30px);
+}
+
+.translate-y-\[20px\] {
+  transform: translateY(20px);
+}
+
+.opacity-0 {
+  opacity: 0;
+}

@@ -34,25 +34,29 @@ export const ContaSidebar = ({
   const menuItemsRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
-    if (sidebarRef.current) {
-      animate(sidebarRef.current, {
-        translateX: [-30, 0],
-        opacity: [0, 1],
-        duration: 600,
-        easing: 'easeOutExpo',
-        delay: 200,
-      });
-    }
+    // Pequeno delay para garantir que o DOM está pronto
+    const timer = setTimeout(() => {
+      if (sidebarRef.current) {
+        animate(sidebarRef.current, {
+          translateX: [-30, 0],
+          opacity: [0, 1],
+          duration: 600,
+          easing: 'easeOutExpo',
+        });
+      }
 
-    if (menuItemsRef.current) {
-      animate(menuItemsRef.current.children, {
-        translateX: [-20, 0],
-        opacity: [0, 1],
-        duration: 500,
-        easing: 'easeOutExpo',
-        delay: stagger(80, { start: 300 }),
-      });
-    }
+      if (menuItemsRef.current && menuItemsRef.current.children.length > 0) {
+        animate(menuItemsRef.current.children, {
+          translateX: [-20, 0],
+          opacity: [0, 1],
+          duration: 500,
+          easing: 'easeOutExpo',
+          delay: stagger(80, { start: 100 }),
+        });
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const getInitials = () => {
