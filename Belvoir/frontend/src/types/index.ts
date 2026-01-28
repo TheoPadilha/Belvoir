@@ -185,3 +185,31 @@ export interface ContactFormData {
   subject: string;
   message: string;
 }
+
+// Review types
+export interface Review {
+  id: string;
+  productId: string;
+  customerName: string;
+  customerAvatar?: string;
+  rating: number; // 1-5
+  title: string;
+  comment: string;
+  images?: string[];
+  verified: boolean; // Compra verificada
+  helpful: number; // Número de pessoas que acharam útil
+  createdAt: string;
+}
+
+export interface ReviewSummary {
+  productId: string;
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}

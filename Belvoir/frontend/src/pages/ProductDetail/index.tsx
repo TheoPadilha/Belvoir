@@ -3,9 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, ChevronRight } from 'lucide-react';
 import { getProductByHandle, formatPrice, products } from '../../data/products';
+import { getReviewSummaryByProductId } from '../../data/reviews';
 import { ProductGallery, VariantSelector, ProductCard } from '../../components/product';
 import { Button } from '../../components/ui';
 import { FadeIn, PageTransition } from '../../components/animations';
+import { StarRating, ProductReviews } from '../../components/reviews';
 import { useCartStore } from '../../store/cartStore';
 import { toast } from '../../store/uiStore';
 import type { ProductVariant } from '../../types';
@@ -42,6 +44,7 @@ export const ProductDetailPage = () => {
 
   const currentPrice = selectedVariant?.price || product.price;
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > currentPrice;
+  const reviewSummary = getReviewSummaryByProductId(product.id);
 
   const handleAddToCart = () => {
     if (!selectedVariant) {
@@ -113,9 +116,21 @@ export const ProductDetailPage = () => {
                 <span className="text-sm uppercase tracking-widest text-primary-500 mb-2 block">
                   {product.brand}
                 </span>
-                <h1 className="font-display text-3xl md:text-4xl text-charcoal mb-4">
+                <h1 className="font-display text-3xl md:text-4xl text-charcoal mb-3">
                   {product.title}
                 </h1>
+                {/* Star Rating */}
+                {reviewSummary.totalReviews > 0 && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <StarRating rating={reviewSummary.averageRating} size="md" />
+                    <a
+                      href="#avaliacoes"
+                      className="text-sm text-secondary-500 hover:text-primary-500 transition-colors"
+                    >
+                      {reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'avaliação' : 'avaliações'}
+                    </a>
+                  </div>
+                )}
               </FadeIn>
 
               {/* Price */}
@@ -336,12 +351,19 @@ export const ProductDetailPage = () => {
         </div>
       </section>
 
+      {/* Reviews Section */}
+      <section id="avaliacoes" className="border-t border-secondary-100">
+        <div className="container-custom">
+          <ProductReviews productId={product.id} productName={product.title} />
+        </div>
+      </section>
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="py-16 bg-secondary-50">
           <div className="container-custom">
             <h2 className="font-display text-3xl text-center mb-12">
-              Você Também Pode Gostar
+              Talvez Você Também Goste
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((relProduct, index) => (

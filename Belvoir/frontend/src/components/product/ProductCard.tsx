@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Eye } from 'lucide-react';
 import type { Product } from '../../types';
 import { formatPrice } from '../../data/products';
+import { getReviewSummaryByProductId } from '../../data/reviews';
 import { useCartStore } from '../../store/cartStore';
 import { toast } from '../../store/uiStore';
 import { Badge } from '../ui/Badge';
+import { StarRating } from '../reviews';
 
 interface ProductCardProps {
   product: Product;
@@ -25,6 +27,9 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
 
   const textColor = theme === 'dark' ? 'text-white' : 'text-charcoal';
   const subtextColor = theme === 'dark' ? 'text-secondary-300' : 'text-secondary-500';
+
+  // Get review summary for this product
+  const reviewSummary = getReviewSummaryByProductId(product.id);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -127,6 +132,17 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
         <h3 className={`font-medium ${textColor} mb-2 line-clamp-2 group-hover:text-primary-500 transition-colors`}>
           {product.title}
         </h3>
+
+        {/* Star Rating */}
+        {reviewSummary.totalReviews > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <StarRating rating={reviewSummary.averageRating} size="sm" />
+            <span className={`text-xs ${subtextColor}`}>
+              ({reviewSummary.totalReviews})
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
           <span className={`text-lg font-display font-semibold ${textColor}`}>
             {formatPrice(product.price)}
