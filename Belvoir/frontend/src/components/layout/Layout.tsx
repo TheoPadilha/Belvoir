@@ -20,7 +20,7 @@ export const Layout = () => {
       <PromoBanner />
       <div className="min-h-screen flex flex-col relative z-10">
         <Header />
-        <main className="flex-1 pt-32 lg:pt-36">
+        <main className="flex-1 pt-36 lg:pt-40">
           <Outlet />
         </main>
         <UltraPremiumFooter />

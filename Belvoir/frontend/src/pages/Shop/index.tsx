@@ -112,70 +112,69 @@ export const ShopPage = () => {
 
   return (
     <PageTransition>
-      {/* Hero Banner with Carousel */}
-      <section className="relative h-[45vh] min-h-[280px] flex items-center justify-center pt-30 overflow-hidden rounded-2xl mx-4 lg:mx-8 mt-12">
-        {/* Carousel Images */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentImage}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7 }}
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url('${heroImages[currentImage]}')`,
-            }}
-          />
-        </AnimatePresence>
-
-        <div className="absolute inset-0 bg-black/40" />
-
-        {/* Navigation Arrows */}
-        <button
-          onClick={prevImage}
-          className="absolute left-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
-          aria-label="Imagem anterior"
+      {/* Título da página */}
+      <div className="container-custom mb-8">
+        <AnimatedText
+          as="h1"
+          className="font-display text-3xl md:text-4xl text-charcoal text-center"
+          animation="fadeUp"
         >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button
-          onClick={nextImage}
-          className="absolute right-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
-          aria-label="Próxima imagem"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
+          Nossa Coleção
+        </AnimatedText>
+        <p className="text-secondary-500 text-center mt-2">
+          {filteredProducts.length} relógios disponíveis
+        </p>
+      </div>
 
-        {/* Dots indicator */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentImage ? 'bg-white w-6' : 'bg-white/50 w-2'
-              }`}
-              aria-label={`Ir para imagem ${index + 1}`}
+      {/* Hero Banner with Carousel - Full Width */}
+      <div className="mb-12">
+        <div className="relative h-[350px] md:h-[450px] overflow-hidden">
+          {/* Carousel Images */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImage}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7 }}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url('${heroImages[currentImage]}')`,
+              }}
             />
-          ))}
-        </div>
+          </AnimatePresence>
 
-        <div className="relative text-center text-white z-10">
-          <AnimatedText
-            as="h1"
-            className="font-display text-4xl md:text-5xl lg:text-6xl mb-4"
-            animation="fadeUp"
+          {/* Navigation Arrows */}
+          <button
+            onClick={prevImage}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+            aria-label="Imagem anterior"
           >
-            Nossa Coleção
-          </AnimatedText>
-          <FadeIn delay={0.2}>
-            <p className="text-white/80 text-lg">
-              {filteredProducts.length} relógios disponíveis
-            </p>
-          </FadeIn>
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+            aria-label="Próxima imagem"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Dots indicator */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImage(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index === currentImage ? 'bg-white w-6' : 'bg-white/50 w-2'
+                }`}
+                aria-label={`Ir para imagem ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* Main Content */}
       <section className="py-12">

@@ -63,8 +63,11 @@ export const ContactPage = () => {
 
   return (
     <PageTransition>
+      {/* Spacer para garantir que o conteúdo fique abaixo do header */}
+      <div className="h-4" />
+
       {/* Hero */}
-      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-center overflow-hidden rounded-2xl mx-4 lg:mx-8 mt-4">
+      <section className="relative h-[45vh] min-h-[300px] flex items-center justify-center overflow-hidden mx-4 lg:mx-8 rounded-2xl">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
