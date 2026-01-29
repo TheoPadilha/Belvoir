@@ -113,7 +113,7 @@ export const ShopPage = () => {
   return (
     <PageTransition>
       {/* Hero Banner with Carousel */}
-      <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[45vh] min-h-[280px] flex items-center justify-center pt-30 overflow-hidden rounded-2xl mx-4 lg:mx-8 mt-12">
         {/* Carousel Images */}
         <AnimatePresence mode="wait">
           <motion.div

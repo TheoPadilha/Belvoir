@@ -63,8 +63,8 @@ export const ContactPage = () => {
 
   return (
     <PageTransition>
-      {/* Hero - margin negativo para hero sobre o header */}
-      <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center overflow-hidden -mt-20 lg:-mt-24">
+      {/* Hero */}
+      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-center overflow-hidden rounded-2xl mx-4 lg:mx-8 mt-4">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
