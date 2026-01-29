@@ -54,7 +54,9 @@ export const LenisProvider = ({ children }: LenisProviderProps) => {
 
   return (
     <LenisContext.Provider value={{ lenis: lenisRef.current }}>
-      {children}
+      <div className="relative min-h-screen">
+        {children}
+      </div>
     </LenisContext.Provider>
   );
 };
