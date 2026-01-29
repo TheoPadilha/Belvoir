@@ -1,12 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { SlidersHorizontal, X, Grid, List } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SlidersHorizontal, X, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { products, categories, formatPrice } from '../../data/products';
 import { ProductCard } from '../../components/product/ProductCard';
 import { Button, Select } from '../../components/ui';
 import { FadeIn, AnimatedText, PageTransition } from '../../components/animations';
 import type { Product } from '../../types';
+
+const heroImages = [
+  '/images/baixados.png',
+  '/images/baixados2.png',
+];
 
 const sortOptions = [
   { value: 'relevance', label: 'Relevância' },
@@ -27,6 +32,18 @@ export const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [currentImage, setCurrentImage] = useState(0);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const nextImage = () => setCurrentImage((prev) => (prev + 1) % heroImages.length);
+  const prevImage = () => setCurrentImage((prev) => (prev - 1 + heroImages.length) % heroImages.length);
 
   // Get filters from URL
   const selectedCategory = searchParams.get('categoria') || '';
@@ -95,16 +112,56 @@ export const ShopPage = () => {
 
   return (
     <PageTransition>
-      {/* Hero Banner */}
+      {/* Hero Banner with Carousel */}
       <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?w=1920&q=80')`,
-          }}
-        />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative text-center text-white">
+        {/* Carousel Images */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentImage}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7 }}
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url('${heroImages[currentImage]}')`,
+            }}
+          />
+        </AnimatePresence>
+
+        <div className="absolute inset-0 bg-black/40" />
+
+        {/* Navigation Arrows */}
+        <button
+          onClick={prevImage}
+          className="absolute left-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+          aria-label="Imagem anterior"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={nextImage}
+          className="absolute right-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+          aria-label="Próxima imagem"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+
+        {/* Dots indicator */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImage(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentImage ? 'bg-white w-6' : 'bg-white/50 w-2'
+              }`}
+              aria-label={`Ir para imagem ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        <div className="relative text-center text-white z-10">
           <AnimatedText
             as="h1"
             className="font-display text-4xl md:text-5xl lg:text-6xl mb-4"

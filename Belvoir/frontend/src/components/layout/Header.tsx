@@ -50,12 +50,14 @@ export const Header = () => {
   const isHome = location.pathname === '/';
   const headerBg = isScrolled || !isHome ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-transparent';
   const textColor = isScrolled || !isHome ? 'text-charcoal' : 'text-white';
+  // Na home, header fica mais baixo (top-10). Em outras páginas, gruda no promo banner
+  const headerTop = isHome ? 'top-5' : 'top-[20px]';
 
   return (
     <>
       <header
         className={`
-          fixed top-10 left-0 right-0 z-50 transition-all duration-500
+          fixed ${headerTop} left-0 right-0 z-50 transition-all duration-500
           ${headerBg}
         `}
       >

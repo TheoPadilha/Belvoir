@@ -259,14 +259,17 @@ export const UltraPremiumFooter = () => {
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <MagneticLink
                 href="/shop"
-                className="group inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary-500 text-white rounded-full text-lg font-medium hover:bg-primary-600 transition-colors"
+                className="group relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-full text-lg font-semibold shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 hover:scale-105 transition-all duration-300 overflow-hidden"
               >
-                Explorar Coleção
-                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                <span className="relative z-10 flex items-center gap-3">
+                  Explorar Coleção
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-2" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </MagneticLink>
               <MagneticLink
                 href="/contato"
-                className="group inline-flex items-center justify-center gap-3 px-10 py-5 border-2 border-white/30 text-white rounded-full text-lg font-medium hover:bg-white/10 hover:border-white/50 transition-all"
+                className="group inline-flex items-center justify-center gap-3 px-12 py-5 bg-white/5 backdrop-blur-sm border border-white/20 text-white rounded-full text-lg font-semibold hover:bg-white/10 hover:border-white/40 hover:scale-105 transition-all duration-300"
               >
                 Agendar Visita
                 <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
