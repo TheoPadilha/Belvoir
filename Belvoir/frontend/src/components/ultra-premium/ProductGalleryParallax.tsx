@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
@@ -20,8 +20,8 @@ export const ProductGalleryParallax = ({
 }: ProductGalleryParallaxProps) => {
   const galleryRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  // Start visible by default to ensure content is never hidden
-  const [isVisible, setIsVisible] = useState(true);
+  // Always visible - content should never be hidden
+  const isVisible = true;
 
   useEffect(() => {
     const gallery = galleryRef.current;

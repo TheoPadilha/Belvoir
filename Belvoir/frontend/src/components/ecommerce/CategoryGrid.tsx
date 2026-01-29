@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
@@ -46,7 +46,6 @@ interface CategoryGridProps {
 
 export const CategoryGrid = ({ categories = defaultCategories }: CategoryGridProps) => {
   const gridRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const grid = gridRef.current;

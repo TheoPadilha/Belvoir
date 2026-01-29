@@ -39,7 +39,7 @@ export const AnimatedText = ({
 
     let elements: Element[] = [];
     let ctx: gsap.Context;
-    let fallbackTimeout: NodeJS.Timeout;
+    let fallbackTimeout: ReturnType<typeof setTimeout>;
 
     ctx = gsap.context(() => {
       if (animation === 'splitChars' || animation === 'splitWords') {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
@@ -14,7 +14,6 @@ export const ManifestoSection = ({
 }: ManifestoSectionProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
-  const [isVisible, setIsVisible] = useState(true); // Start visible by default
 
   useEffect(() => {
     const section = sectionRef.current;

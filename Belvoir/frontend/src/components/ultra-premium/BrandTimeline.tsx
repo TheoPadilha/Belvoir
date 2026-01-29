@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -46,7 +46,6 @@ const defaultItems: TimelineItem[] = [
 export const BrandTimeline = ({ items = defaultItems }: BrandTimelineProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(true); // Start visible by default
 
   useEffect(() => {
     const section = sectionRef.current;
