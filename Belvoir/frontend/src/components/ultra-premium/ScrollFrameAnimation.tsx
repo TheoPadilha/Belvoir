@@ -194,35 +194,44 @@ export const ScrollFrameAnimation = ({
           }`}
         />
 
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-transparent to-charcoal/50 pointer-events-none" />
+        {/* Overlay gradient for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/40 to-charcoal/60 pointer-events-none z-5" />
 
-        {/* Text content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-          <div className="text-center px-4 max-w-4xl">
-            <span className="text-sm uppercase tracking-[0.3em] text-primary-400 mb-6 block">
+        {/* Text content - always visible */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none px-4">
+          <div className="text-center w-full max-w-4xl bg-black/30 backdrop-blur-sm py-8 md:py-12 px-6 md:px-10 rounded-2xl">
+            <span
+              className="text-xs md:text-sm uppercase tracking-[0.2em] md:tracking-[0.3em] text-primary-400 mb-4 md:mb-6 block font-semibold"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}
+            >
               Craftsmanship
             </span>
-            <h2 className="font-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white mb-6 leading-tight">
+            <h2
+              className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white mb-4 md:mb-6 leading-tight"
+              style={{ textShadow: '0 4px 20px rgba(0,0,0,1), 0 2px 8px rgba(0,0,0,0.9)' }}
+            >
               {title}
             </h2>
-            <p className="text-xl md:text-2xl text-white/70 max-w-2xl mx-auto">
+            <p
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-white max-w-2xl mx-auto leading-relaxed"
+              style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
+            >
               {subtitle}
             </p>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10">
-          <span className="text-white/40 text-xs uppercase tracking-[0.2em]">Scroll</span>
-          <div className="w-[1px] h-12 bg-gradient-to-b from-white/40 to-transparent animate-pulse" />
+        <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-30">
+          <span className="text-white/60 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Scroll</span>
+          <div className="w-px h-8 md:h-12 bg-gradient-to-b from-white/60 to-transparent animate-pulse" />
         </div>
 
-        {/* Corner decorations */}
-        <div className="absolute top-8 left-8 w-16 h-[1px] bg-gradient-to-r from-primary-500/40 to-transparent" />
-        <div className="absolute top-8 left-8 w-[1px] h-16 bg-gradient-to-b from-primary-500/40 to-transparent" />
-        <div className="absolute bottom-8 right-8 w-16 h-[1px] bg-gradient-to-l from-primary-500/40 to-transparent" />
-        <div className="absolute bottom-8 right-8 w-[1px] h-16 bg-gradient-to-t from-primary-500/40 to-transparent" />
+        {/* Corner decorations - hidden on small screens */}
+        <div className="hidden md:block absolute top-8 left-8 w-16 h-px bg-gradient-to-r from-primary-500/40 to-transparent" />
+        <div className="hidden md:block absolute top-8 left-8 w-px h-16 bg-gradient-to-b from-primary-500/40 to-transparent" />
+        <div className="hidden md:block absolute bottom-8 right-8 w-16 h-px bg-gradient-to-l from-primary-500/40 to-transparent" />
+        <div className="hidden md:block absolute bottom-8 right-8 w-px h-16 bg-gradient-to-t from-primary-500/40 to-transparent" />
       </div>
     </section>
   );

@@ -31,6 +31,12 @@ export const FadeIn = ({
     const element = ref.current;
     if (!element) return;
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.set(element, { opacity: 1, x: 0, y: 0 });
+      return;
+    }
+
     const directionMap = {
       up: { y: distance, x: 0 },
       down: { y: -distance, x: 0 },
@@ -57,7 +63,15 @@ export const FadeIn = ({
       },
     });
 
+    // Fallback: ensure visibility after reasonable delay
+    const fallbackTimeout = setTimeout(() => {
+      if (element && window.getComputedStyle(element).opacity === '0') {
+        gsap.set(element, { opacity: 1, x: 0, y: 0 });
+      }
+    }, (delay + duration + 2) * 1000);
+
     return () => {
+      clearTimeout(fallbackTimeout);
       animation.kill();
       ScrollTrigger.getAll().forEach((trigger) => {
         if (trigger.vars.trigger === element) {
@@ -103,6 +117,13 @@ export const StaggerFadeIn = ({
     if (!container) return;
 
     const items = container.children;
+    const itemsArray = Array.from(items);
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.set(items, { opacity: 1, x: 0, y: 0 });
+      return;
+    }
 
     const directionMap = {
       up: { y: distance, x: 0 },
@@ -131,7 +152,18 @@ export const StaggerFadeIn = ({
       },
     });
 
+    // Fallback: ensure visibility after reasonable delay
+    const totalDuration = delay + duration + (itemsArray.length * stagger) + 2;
+    const fallbackTimeout = setTimeout(() => {
+      itemsArray.forEach((item) => {
+        if (window.getComputedStyle(item).opacity === '0') {
+          gsap.set(item, { opacity: 1, x: 0, y: 0 });
+        }
+      });
+    }, totalDuration * 1000);
+
     return () => {
+      clearTimeout(fallbackTimeout);
       animation.kill();
     };
   }, [direction, stagger, delay, duration, distance]);

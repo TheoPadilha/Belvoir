@@ -42,7 +42,19 @@ export const AnimatedProductGrid = ({
       ease: 'outExpo',
     });
 
+    // Fallback: ensure visibility after animation should complete
+    const totalDuration = 200 + (cards.length * 100) + 800 + 500; // start + stagger + duration + buffer
+    const fallbackTimeout = setTimeout(() => {
+      cards.forEach((card) => {
+        if (window.getComputedStyle(card as Element).opacity === '0') {
+          utils.set(card, { opacity: 1, translateY: 0, scale: 1 });
+        }
+      });
+    }, totalDuration);
+
     hasAnimated.current = true;
+
+    return () => clearTimeout(fallbackTimeout);
   }, [products]);
 
   const gridCols = {

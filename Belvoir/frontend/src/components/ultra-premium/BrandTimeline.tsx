@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -46,6 +46,7 @@ const defaultItems: TimelineItem[] = [
 export const BrandTimeline = ({ items = defaultItems }: BrandTimelineProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(true); // Start visible by default
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -56,6 +57,21 @@ export const BrandTimeline = ({ items = defaultItems }: BrandTimelineProps) => {
     if (prefersReducedMotion) return;
 
     const timelineItems = gsap.utils.toArray<HTMLElement>('.timeline-item');
+
+    // Fallback timeout to ensure visibility
+    const fallbackTimeout = setTimeout(() => {
+      timelineItems.forEach((item) => {
+        const content = item.querySelector('.timeline-content');
+        const dot = item.querySelector('.timeline-dot');
+        if (content && window.getComputedStyle(content).opacity === '0') {
+          gsap.set(content, { opacity: 1, x: 0 });
+        }
+        if (dot && window.getComputedStyle(dot).opacity === '0') {
+          gsap.set(dot, { scale: 1 });
+        }
+      });
+      gsap.set(line, { scaleY: 1 });
+    }, 3000);
 
     // Animate the center line
     gsap.fromTo(line,
@@ -116,6 +132,7 @@ export const BrandTimeline = ({ items = defaultItems }: BrandTimelineProps) => {
     });
 
     return () => {
+      clearTimeout(fallbackTimeout);
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, [items]);

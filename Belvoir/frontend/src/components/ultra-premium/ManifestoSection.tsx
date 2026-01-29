@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitType from 'split-type';
@@ -14,6 +14,7 @@ export const ManifestoSection = ({
 }: ManifestoSectionProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
+  const [isVisible, setIsVisible] = useState(true); // Start visible by default
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -27,6 +28,17 @@ export const ManifestoSection = ({
     const split = new SplitType(textElement, { types: 'words' });
 
     if (!split.words) return;
+
+    // Fallback timeout to ensure visibility
+    const fallbackTimeout = setTimeout(() => {
+      if (split.words) {
+        split.words.forEach((word) => {
+          if (window.getComputedStyle(word).opacity === '0') {
+            gsap.set(word, { opacity: 1, y: 0 });
+          }
+        });
+      }
+    }, 3000);
 
     // Animate each word with stagger
     split.words.forEach((word, index) => {
@@ -75,6 +87,7 @@ export const ManifestoSection = ({
     });
 
     return () => {
+      clearTimeout(fallbackTimeout);
       ScrollTrigger.getAll().forEach((t) => t.kill());
       split.revert();
     };

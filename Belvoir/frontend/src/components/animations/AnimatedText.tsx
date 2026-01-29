@@ -31,8 +31,15 @@ export const AnimatedText = ({
     const container = containerRef.current;
     if (!container) return;
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.set(container, { opacity: 1, y: 0 });
+      return;
+    }
+
     let elements: Element[] = [];
     let ctx: gsap.Context;
+    let fallbackTimeout: NodeJS.Timeout;
 
     ctx = gsap.context(() => {
       if (animation === 'splitChars' || animation === 'splitWords') {
@@ -93,12 +100,25 @@ export const AnimatedText = ({
           : undefined,
       });
 
+      // Fallback: ensure visibility after reasonable delay
+      const totalDuration = delay + duration + (elements.length * stagger) + 2;
+      fallbackTimeout = setTimeout(() => {
+        elements.forEach((el) => {
+          if (window.getComputedStyle(el).opacity === '0') {
+            gsap.set(el, { opacity: 1, y: 0 });
+          }
+        });
+      }, totalDuration * 1000);
+
       return () => {
         tween.kill();
       };
     }, container);
 
-    return () => ctx.revert();
+    return () => {
+      clearTimeout(fallbackTimeout);
+      ctx.revert();
+    };
   }, [animation, delay, duration, stagger, scrollTrigger]);
 
   return (

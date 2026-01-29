@@ -20,27 +20,15 @@ export const ProductGalleryParallax = ({
 }: ProductGalleryParallaxProps) => {
   const galleryRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  // Start visible by default to ensure content is never hidden
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const gallery = galleryRef.current;
     if (!gallery) return;
 
-    // Use IntersectionObserver for reliable visibility
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(gallery);
-
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      setIsVisible(true);
       return;
     }
 
@@ -82,7 +70,10 @@ export const ProductGalleryParallax = ({
     });
 
     return () => {
-      observer.disconnect();
+      // Cleanup mouse event listeners
+      cards.forEach((card) => {
+        card.replaceWith(card.cloneNode(true));
+      });
     };
   }, [products]);
 

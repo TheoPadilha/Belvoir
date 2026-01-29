@@ -6,6 +6,7 @@ import { ToastContainer } from '../ui/Toast';
 import { LenisProvider } from '../animations';
 import { InteractiveBackground } from '../premium';
 import { SpotlightCursor, UltraPremiumFooter } from '../ultra-premium';
+import { PromoBanner } from '../ecommerce';
 
 export const Layout = () => {
   return (
@@ -15,9 +16,11 @@ export const Layout = () => {
       <InteractiveBackground />
       {/* Ultra-Premium Spotlight Cursor */}
       <SpotlightCursor />
+      {/* Promo Banner - Fixed at top */}
+      <PromoBanner />
       <div className="min-h-screen flex flex-col relative z-10">
         <Header />
-        <main className="flex-1 pt-20 lg:pt-24">
+        <main className="flex-1 pt-32 lg:pt-36">
           <Outlet />
         </main>
         <UltraPremiumFooter />
