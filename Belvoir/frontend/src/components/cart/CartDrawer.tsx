@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag, Trash2, Loader2 } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
@@ -7,6 +7,7 @@ import { formatPrice } from '../../data/products';
 import { Button } from '../ui/Button';
 
 export const CartDrawer = () => {
+  const navigate = useNavigate();
   const {
     items,
     subtotal,
@@ -15,10 +16,14 @@ export const CartDrawer = () => {
     removeItem,
     updateQuantity,
     clearCart,
-    goToCheckout,
     isLoading,
     isUpdating,
   } = useCart();
+
+  const handleGoToCheckout = () => {
+    closeCart();
+    navigate('/checkout');
+  };
 
   // Prevenir scroll quando drawer está aberto
   useEffect(() => {
@@ -191,7 +196,7 @@ export const CartDrawer = () => {
                   <Button
                     fullWidth
                     variant="primary"
-                    onClick={goToCheckout}
+                    onClick={handleGoToCheckout}
                     disabled={isUpdating}
                   >
                     {isUpdating ? (

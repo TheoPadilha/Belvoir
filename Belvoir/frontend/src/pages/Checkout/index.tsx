@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronLeft, Lock, CreditCard, Truck, MapPin } from 'lucide-react';
-import { useCartStore } from '../../store/cartStore';
+import { Check, ChevronLeft, Lock, CreditCard, Truck, MapPin, Loader2 } from 'lucide-react';
+import { useCart } from '../../hooks/useCart';
 import { useCheckoutStore } from '../../store/checkoutStore';
 import { formatPrice, shippingMethods } from '../../data/products';
 import { Button, Input } from '../../components/ui';
 import { PageTransition } from '../../components/animations';
 import { toast } from '../../store/uiStore';
+import { mercadoPagoService } from '../../services/mercadoPagoService';
 import type { Address } from '../../types';
 
 const steps = [
@@ -18,7 +19,7 @@ const steps = [
 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { items, getSubtotal, clearCart } = useCartStore();
+  const { items, subtotal: cartSubtotal, isLoading: isCartLoading } = useCart();
   const {
     step,
     setStep,
@@ -29,21 +30,20 @@ export const CheckoutPage = () => {
     shippingMethod,
     setShippingMethod,
     canProceedToStep,
-    resetCheckout,
   } = useCheckoutStore();
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const subtotal = getSubtotal();
+  const subtotal = cartSubtotal;
   const shippingCost = shippingMethod?.price || 0;
   const total = subtotal + shippingCost;
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty (only after loading completes)
   useEffect(() => {
-    if (items.length === 0) {
+    if (!isCartLoading && items.length === 0) {
       navigate('/shop');
     }
-  }, [items.length, navigate]);
+  }, [items.length, isCartLoading, navigate]);
 
   const handleNextStep = () => {
     if (step === 1 && canProceedToStep(2)) {
@@ -60,18 +60,52 @@ export const CheckoutPage = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (!shippingAddress || !email) {
+      toast.error('Preencha todos os dados antes de continuar');
+      return;
+    }
+
+    if (!shippingMethod) {
+      toast.error('Selecione um método de entrega');
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Simular processamento do pedido
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Preparar dados do cliente para o MercadoPago
+      const customerInfo = {
+        email,
+        firstName: shippingAddress.firstName,
+        lastName: shippingAddress.lastName,
+        phone: shippingAddress.phone,
+        address: mercadoPagoService.addressToMPFormat(shippingAddress),
+      };
 
-    toast.success('Pedido realizado com sucesso! Você receberá um e-mail de confirmação.');
-    clearCart();
-    resetCheckout();
-    navigate('/');
-
-    setIsProcessing(false);
+      // Redirecionar para o checkout do MercadoPago
+      await mercadoPagoService.redirectToCheckout(
+        items,
+        customerInfo,
+        shippingMethod.price
+      );
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      toast.error('Erro ao processar pagamento. Tente novamente.');
+      setIsProcessing(false);
+    }
   };
+
+  // Show loader while cart is loading
+  if (isCartLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
+          <p className="text-secondary-500">Carregando checkout...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return null;
@@ -351,72 +385,106 @@ export const CheckoutPage = () => {
                     >
                       <h2 className="font-display text-2xl mb-6">Pagamento</h2>
 
-                      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
-                        <p className="text-sm text-yellow-800">
-                          <strong>Modo Demonstração:</strong> Este é um ambiente de teste.
-                          Nenhum pagamento real será processado.
-                        </p>
+                      {/* Resumo do pedido */}
+                      <div className="bg-secondary-50 p-4 rounded-lg mb-6">
+                        <h3 className="font-medium mb-3">Resumo da Entrega</h3>
+                        <div className="text-sm text-secondary-600 space-y-1">
+                          <p><strong>Nome:</strong> {shippingAddress?.firstName} {shippingAddress?.lastName}</p>
+                          <p><strong>Endereço:</strong> {shippingAddress?.address1}, {shippingAddress?.city} - {shippingAddress?.state}</p>
+                          <p><strong>CEP:</strong> {shippingAddress?.zipCode}</p>
+                          <p><strong>Frete:</strong> {shippingMethod?.title} - {shippingMethod?.price === 0 ? 'Grátis' : formatPrice(shippingMethod?.price || 0)}</p>
+                        </div>
                       </div>
 
-                      <div className="space-y-6">
-                        <div className="p-4 border border-secondary-200 rounded-lg">
-                          <div className="flex items-center gap-3 mb-4">
-                            <CreditCard size={24} className="text-secondary-400" />
-                            <span className="font-medium">Cartão de Crédito</span>
-                          </div>
+                      {/* Informação sobre pagamento */}
+                      <div className="space-y-4 mb-6">
+                        <p className="text-secondary-600">
+                          Ao clicar em "Ir para Pagamento", você será redirecionado para nossa página segura
+                          de checkout onde poderá finalizar seu pedido.
+                        </p>
 
-                          <div className="space-y-4">
-                            <Input
-                              label="Número do Cartão"
-                              placeholder="0000 0000 0000 0000"
-                            />
-                            <Input
-                              label="Nome no Cartão"
-                              placeholder="Como aparece no cartão"
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                              <Input label="Validade" placeholder="MM/AA" />
-                              <Input label="CVV" placeholder="123" />
+                        <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Lock size={20} className="text-green-600" />
+                            <div>
+                              <p className="font-medium text-green-800">Pagamento 100% Seguro</p>
+                              <p className="text-sm text-green-700">
+                                Seus dados são protegidos com criptografia SSL
+                              </p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            id="terms"
-                            className="mt-1"
-                            defaultChecked
-                          />
-                          <label htmlFor="terms" className="text-sm text-secondary-600">
-                            Li e aceito os{' '}
-                            <a href="/politicas/termos" className="text-primary-500 hover:underline">
-                              Termos de Uso
-                            </a>{' '}
-                            e a{' '}
-                            <a href="/politicas/privacidade" className="text-primary-500 hover:underline">
-                              Política de Privacidade
-                            </a>
-                          </label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="flex flex-col items-center p-3 bg-white border border-secondary-200 rounded-lg">
+                            <CreditCard size={24} className="text-blue-600 mb-2" />
+                            <span className="text-xs text-center">Cartão de Crédito</span>
+                          </div>
+                          <div className="flex flex-col items-center p-3 bg-white border border-secondary-200 rounded-lg">
+                            <svg className="w-6 h-6 mb-2" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#00A884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="text-xs text-center">PIX</span>
+                          </div>
+                          <div className="flex flex-col items-center p-3 bg-white border border-secondary-200 rounded-lg">
+                            <svg className="w-6 h-6 mb-2 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M4 4h16v2H4V4zm0 4h16v12H4V8zm2 2v8h12v-8H6z"/>
+                            </svg>
+                            <span className="text-xs text-center">Boleto</span>
+                          </div>
+                          <div className="flex flex-col items-center p-3 bg-white border border-secondary-200 rounded-lg">
+                            <CreditCard size={24} className="text-green-600 mb-2" />
+                            <span className="text-xs text-center">Débito</span>
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Termos */}
+                      <div className="flex items-start gap-3 mb-6">
+                        <input
+                          type="checkbox"
+                          id="terms"
+                          className="mt-1"
+                          defaultChecked
+                        />
+                        <label htmlFor="terms" className="text-sm text-secondary-600">
+                          Li e aceito os{' '}
+                          <a href="/politicas/termos" className="text-primary-500 hover:underline">
+                            Termos de Uso
+                          </a>{' '}
+                          e a{' '}
+                          <a href="/politicas/privacidade" className="text-primary-500 hover:underline">
+                            Política de Privacidade
+                          </a>
+                        </label>
                       </div>
 
                       <div className="flex justify-between mt-8 pt-6 border-t border-secondary-100">
                         <button
                           onClick={handlePrevStep}
                           className="flex items-center gap-2 text-secondary-500 hover:text-charcoal"
+                          disabled={isProcessing}
                         >
                           <ChevronLeft size={18} />
                           Voltar
                         </button>
                         <Button
                           onClick={handlePlaceOrder}
-                          isLoading={isProcessing}
+                          disabled={isProcessing}
                           variant="gold"
                           size="lg"
                         >
-                          <Lock size={18} className="mr-2" />
-                          Finalizar Pedido - {formatPrice(total)}
+                          {isProcessing ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 size={18} className="animate-spin" />
+                              Redirecionando...
+                            </span>
+                          ) : (
+                            <>
+                              <Lock size={18} className="mr-2" />
+                              Ir para Pagamento - {formatPrice(total)}
+                            </>
+                          )}
                         </Button>
                       </div>
                     </motion.div>

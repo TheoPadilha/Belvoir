@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Star, ShoppingBag, Loader2 } from 'lucide-react';
 import type { Product } from '../../types';
+import { useCart } from '../../hooks/useCart';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,6 +20,29 @@ export const FeaturedProducts = ({
   subtitle = 'Os relógios favoritos dos nossos clientes',
 }: FeaturedProductsProps) => {
   const sectionRef = useRef<HTMLElement>(null);
+  const { addItem, isUpdating } = useCart();
+
+  const handleAddToCart = async (product: Product, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const variant = product.variants?.[0];
+    if (!variant) {
+      console.error('Product has no variants');
+      return;
+    }
+
+    await addItem({
+      productId: product.id,
+      variantId: variant.id,
+      title: product.title,
+      variantTitle: variant.title || 'Default',
+      price: product.price,
+      quantity: 1,
+      image: product.images[0]?.src || '',
+      handle: product.handle,
+    });
+  };
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -174,9 +198,17 @@ export const FeaturedProducts = ({
                   </div>
 
                   {/* Add to cart */}
-                  <button className="w-full bg-charcoal text-white py-3 rounded-full font-bold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2">
-                    <ShoppingBag className="w-4 h-4" />
-                    Adicionar ao Carrinho
+                  <button
+                    onClick={(e) => handleAddToCart(product, e)}
+                    disabled={isUpdating || !product.available}
+                    className="w-full bg-charcoal text-white py-3 rounded-full font-bold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ShoppingBag className="w-4 h-4" />
+                    )}
+                    {product.available ? 'Adicionar ao Carrinho' : 'Indisponível'}
                   </button>
                 </div>
               </div>

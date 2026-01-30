@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Search, ShoppingBag, User } from 'lucide-react';
-import { useCartStore } from '../../store/cartStore';
+import { useCart } from '../../hooks/useCart';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 
@@ -16,10 +16,9 @@ const navLinks = [
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
-  const { openCart, getItemCount } = useCartStore();
+  const { openCart, itemCount } = useCart();
   const { isMenuOpen, openMenu, closeMenu } = useUIStore();
   const { isAuthenticated, customer } = useAuthStore();
-  const itemCount = getItemCount();
 
   // Detectar scroll
   useEffect(() => {

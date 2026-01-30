@@ -85,15 +85,21 @@ export function useShopifyCart(): UseShopifyCartState & UseShopifyCartActions {
 
   // Adicionar item
   const addItem = useCallback(async (variantId: string, quantity: number = 1) => {
+    console.log('[useShopifyCart] addItem called', { variantId, quantity });
+
     if (!isShopifyConfigured()) {
+      console.log('[useShopifyCart] Shopify not configured, throwing USE_LOCAL_CART');
       throw new Error('USE_LOCAL_CART');
     }
 
     setState((prev) => ({ ...prev, isUpdating: true, error: null }));
     try {
+      console.log('[useShopifyCart] Calling cartService.addToCart...');
       const cart = await cartService.addToCart(variantId, quantity);
+      console.log('[useShopifyCart] Cart updated:', cart);
       setState((prev) => ({ ...prev, cart, isUpdating: false }));
     } catch (error) {
+      console.error('[useShopifyCart] Error adding item:', error);
       const message = error instanceof Error ? error.message : 'Erro ao adicionar item';
       setState((prev) => ({ ...prev, isUpdating: false, error: message }));
       throw error;

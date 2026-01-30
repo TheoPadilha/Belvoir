@@ -8,6 +8,9 @@ const HomePage = lazy(() => import('./pages/Home'));
 const ShopPage = lazy(() => import('./pages/Shop'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetail'));
 const CheckoutPage = lazy(() => import('./pages/Checkout'));
+const CheckoutSuccessPage = lazy(() => import('./pages/CheckoutResult/Success'));
+const CheckoutErrorPage = lazy(() => import('./pages/CheckoutResult/Error'));
+const CheckoutPendingPage = lazy(() => import('./pages/CheckoutResult/Pending'));
 const AboutPage = lazy(() => import('./pages/About'));
 const ContactPage = lazy(() => import('./pages/Contact'));
 const LoginPage = lazy(() => import('./pages/Login'));
@@ -63,6 +66,30 @@ export const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <CheckoutPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'checkout/sucesso',
+        element: (
+          <SuspenseWrapper>
+            <CheckoutSuccessPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'checkout/erro',
+        element: (
+          <SuspenseWrapper>
+            <CheckoutErrorPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'checkout/pendente',
+        element: (
+          <SuspenseWrapper>
+            <CheckoutPendingPage />
           </SuspenseWrapper>
         ),
       },

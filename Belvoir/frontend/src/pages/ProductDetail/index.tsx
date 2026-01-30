@@ -17,7 +17,7 @@ export const ProductDetailPage = () => {
   const { handle } = useParams<{ handle: string }>();
   const { product, isLoading, error } = useProduct(handle);
   const { products: relatedProducts } = useRelatedProducts(handle, 4);
-  const { addItem } = useCart();
+  const { addItem, isUpdating: isAddingToCart } = useCart();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -229,9 +229,18 @@ export const ProductDetailPage = () => {
                     variant="primary"
                     size="lg"
                     className="flex-1"
-                    disabled={!selectedVariant?.available}
+                    disabled={!selectedVariant?.available || isAddingToCart}
                   >
-                    {selectedVariant?.available ? 'Adicionar ao Carrinho' : 'Indisponível'}
+                    {isAddingToCart ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 size={18} className="animate-spin" />
+                        Adicionando...
+                      </span>
+                    ) : selectedVariant?.available ? (
+                      'Adicionar ao Carrinho'
+                    ) : (
+                      'Indisponível'
+                    )}
                   </Button>
                   <Button variant="secondary" size="lg" aria-label="Adicionar aos favoritos">
                     <Heart size={20} />
