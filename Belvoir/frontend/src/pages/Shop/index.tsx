@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SlidersHorizontal, X, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
-import { products, categories, formatPrice } from '../../data/products';
+import { SlidersHorizontal, X, Grid, List, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { formatPrice } from '../../data/products';
+import { useProducts, useCategories } from '../../hooks/useProducts';
 import { ProductCard } from '../../components/product/ProductCard';
 import { Button, Select } from '../../components/ui';
-import { FadeIn, AnimatedText, PageTransition } from '../../components/animations';
+import { AnimatedText, PageTransition } from '../../components/animations';
 import type { Product } from '../../types';
 
 const heroImages = [
@@ -34,6 +35,10 @@ export const ShopPage = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentImage, setCurrentImage] = useState(0);
 
+  // Buscar produtos e categorias do Shopify
+  const { products, isLoading: isLoadingProducts, error: productsError } = useProducts(100);
+  const { categories } = useCategories();
+
   // Auto-advance carousel
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,10 +57,12 @@ export const ShopPage = () => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+
     let result = [...products];
 
-    // Category filter
-    if (selectedCategory) {
+    // Category filter (só aplica se categorias carregaram)
+    if (selectedCategory && categories && categories.length > 0) {
       const categoryName = categories.find(
         (c) => c.toLowerCase().replace(/\s+/g, '-') === selectedCategory
       );
@@ -92,7 +99,7 @@ export const ShopPage = () => {
     }
 
     return result;
-  }, [selectedCategory, selectedSort, selectedPriceRange]);
+  }, [products, categories, selectedCategory, selectedSort, selectedPriceRange]);
 
   const updateFilter = (key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -110,6 +117,9 @@ export const ShopPage = () => {
 
   const hasActiveFilters = selectedCategory || selectedPriceRange !== 'all';
 
+  // Só mostrar loading se produtos estiverem carregando (categorias podem carregar depois)
+  const isLoading = isLoadingProducts;
+
   return (
     <PageTransition>
       {/* Título da página */}
@@ -122,7 +132,7 @@ export const ShopPage = () => {
           Nossa Coleção
         </AnimatedText>
         <p className="text-secondary-500 text-center mt-2">
-          {filteredProducts.length} relógios disponíveis
+          {isLoading ? 'Carregando...' : `${filteredProducts.length} relógios disponíveis`}
         </p>
       </div>
 
@@ -306,7 +316,26 @@ export const ShopPage = () => {
 
             {/* Products Grid */}
             <div className="flex-1">
-              {filteredProducts.length === 0 ? (
+              {/* Loading State */}
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-12 h-12 animate-spin text-primary-500 mb-4" />
+                  <p className="text-secondary-500">Carregando produtos...</p>
+                </div>
+              ) : productsError ? (
+                /* Error State */
+                <div className="text-center py-20">
+                  <h3 className="font-display text-2xl mb-4 text-red-600">
+                    Erro ao carregar produtos
+                  </h3>
+                  <p className="text-secondary-500 mb-6">
+                    {productsError}
+                  </p>
+                  <Button variant="secondary" onClick={() => window.location.reload()}>
+                    Tentar Novamente
+                  </Button>
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div className="text-center py-20">
                   <h3 className="font-display text-2xl mb-4">
                     Nenhum produto encontrado
@@ -326,14 +355,14 @@ export const ShopPage = () => {
                       : 'space-y-6'
                   }
                 >
-                  {filteredProducts.map((product, index) => (
-                    <FadeIn key={product.id} delay={index * 0.05}>
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="animate-fade-in">
                       {viewMode === 'grid' ? (
                         <ProductCard product={product} />
                       ) : (
                         <ProductListItem product={product} />
                       )}
-                    </FadeIn>
+                    </div>
                   ))}
                 </div>
               )}

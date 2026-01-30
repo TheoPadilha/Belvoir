@@ -1,14 +1,24 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
-import { useCartStore } from '../../store/cartStore';
+import { X, Minus, Plus, ShoppingBag, Trash2, Loader2 } from 'lucide-react';
+import { useCart } from '../../hooks/useCart';
 import { formatPrice } from '../../data/products';
 import { Button } from '../ui/Button';
 
 export const CartDrawer = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, getSubtotal, clearCart } = useCartStore();
-  const subtotal = getSubtotal();
+  const {
+    items,
+    subtotal,
+    isOpen,
+    closeCart,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    goToCheckout,
+    isLoading,
+    isUpdating,
+  } = useCart();
 
   // Prevenir scroll quando drawer está aberto
   useEffect(() => {
@@ -62,7 +72,12 @@ export const CartDrawer = () => {
 
             {/* Items */}
             <div className="flex-1 overflow-y-auto">
-              {items.length === 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                  <Loader2 size={48} className="text-primary-500 animate-spin mb-4" />
+                  <p className="text-secondary-500">Carregando carrinho...</p>
+                </div>
+              ) : items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
                   <ShoppingBag size={64} className="text-secondary-200 mb-4" />
                   <h3 className="font-display text-xl mb-2">Carrinho vazio</h3>
@@ -118,11 +133,12 @@ export const CartDrawer = () => {
 
                           {/* Quantity Controls */}
                           <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center border border-secondary-200">
+                            <div className={`flex items-center border border-secondary-200 ${isUpdating ? 'opacity-50' : ''}`}>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="p-2 hover:bg-secondary-50 transition-colors"
+                                className="p-2 hover:bg-secondary-50 transition-colors disabled:opacity-50"
                                 aria-label="Diminuir quantidade"
+                                disabled={isUpdating}
                               >
                                 <Minus size={14} />
                               </button>
@@ -131,8 +147,9 @@ export const CartDrawer = () => {
                               </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="p-2 hover:bg-secondary-50 transition-colors"
+                                className="p-2 hover:bg-secondary-50 transition-colors disabled:opacity-50"
                                 aria-label="Aumentar quantidade"
+                                disabled={isUpdating}
                               >
                                 <Plus size={14} />
                               </button>
@@ -171,11 +188,21 @@ export const CartDrawer = () => {
 
                 {/* Actions */}
                 <div className="space-y-3">
-                  <Link to="/checkout" onClick={closeCart}>
-                    <Button fullWidth variant="primary">
-                      Finalizar Compra
-                    </Button>
-                  </Link>
+                  <Button
+                    fullWidth
+                    variant="primary"
+                    onClick={goToCheckout}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 size={18} className="animate-spin" />
+                        Processando...
+                      </span>
+                    ) : (
+                      'Finalizar Compra'
+                    )}
+                  </Button>
                   <Button
                     fullWidth
                     variant="secondary"

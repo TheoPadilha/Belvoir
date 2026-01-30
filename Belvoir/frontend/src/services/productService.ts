@@ -1,0 +1,589 @@
+/**
+ * Product Service - Shopify Storefront API
+ *
+ * Serviço para buscar produtos e coleções da loja Shopify.
+ * Inclui queries GraphQL e funções de mapeamento para tipos locais.
+ */
+
+import shopifyFetch, { extractShopifyId, isShopifyConfigured } from './shopifyClient';
+import type { Product, ProductImage, ProductVariant, Collection } from '../types';
+import { products as mockProducts, categories as mockCategories } from '../data/products';
+
+// ============================================
+// TIPOS SHOPIFY (Respostas da API)
+// ============================================
+
+interface ShopifyMoney {
+  amount: string;
+  currencyCode: string;
+}
+
+interface ShopifyImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  width: number;
+  height: number;
+}
+
+interface ShopifyProductVariant {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  sku: string;
+  price: ShopifyMoney;
+  compareAtPrice: ShopifyMoney | null;
+  selectedOptions: Array<{
+    name: string;
+    value: string;
+  }>;
+  quantityAvailable?: number | null;
+}
+
+interface ShopifyProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  descriptionHtml: string;
+  availableForSale: boolean;
+  totalInventory?: number;
+  productType: string;
+  vendor: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  priceRange: {
+    minVariantPrice: ShopifyMoney;
+    maxVariantPrice: ShopifyMoney;
+  };
+  compareAtPriceRange: {
+    minVariantPrice: ShopifyMoney;
+    maxVariantPrice: ShopifyMoney;
+  };
+  images: {
+    edges: Array<{
+      node: ShopifyImage;
+    }>;
+  };
+  variants: {
+    edges: Array<{
+      node: ShopifyProductVariant;
+    }>;
+  };
+  metafields: Array<{
+    key: string;
+    value: string;
+    namespace: string;
+  } | null>;
+}
+
+interface ShopifyCollection {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  image: ShopifyImage | null;
+  products: {
+    edges: Array<{
+      node: ShopifyProduct;
+    }>;
+  };
+}
+
+// ============================================
+// GRAPHQL FRAGMENTS
+// ============================================
+
+const PRODUCT_FRAGMENT = `
+  fragment ProductFields on Product {
+    id
+    title
+    handle
+    description
+    descriptionHtml
+    availableForSale
+    productType
+    vendor
+    tags
+    createdAt
+    updatedAt
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+      maxVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    compareAtPriceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+      maxVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    images(first: 10) {
+      edges {
+        node {
+          id
+          url
+          altText
+          width
+          height
+        }
+      }
+    }
+    variants(first: 20) {
+      edges {
+        node {
+          id
+          title
+          availableForSale
+          sku
+          price {
+            amount
+            currencyCode
+          }
+          compareAtPrice {
+            amount
+            currencyCode
+          }
+          selectedOptions {
+            name
+            value
+          }
+        }
+      }
+    }
+    metafields(identifiers: [
+      { namespace: "custom", key: "material" },
+      { namespace: "custom", key: "movement" },
+      { namespace: "custom", key: "water_resistance" },
+      { namespace: "custom", key: "case_diameter" },
+      { namespace: "custom", key: "features" },
+      { namespace: "custom", key: "short_description" }
+    ]) {
+      key
+      value
+      namespace
+    }
+  }
+`;
+
+// ============================================
+// GRAPHQL QUERIES
+// ============================================
+
+const GET_ALL_PRODUCTS_QUERY = `
+  ${PRODUCT_FRAGMENT}
+  query GetAllProducts($first: Int!, $after: String) {
+    products(first: $first, after: $after) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      edges {
+        node {
+          ...ProductFields
+        }
+      }
+    }
+  }
+`;
+
+const GET_PRODUCT_BY_HANDLE_QUERY = `
+  ${PRODUCT_FRAGMENT}
+  query GetProductByHandle($handle: String!) {
+    product(handle: $handle) {
+      ...ProductFields
+    }
+  }
+`;
+
+const GET_PRODUCTS_BY_COLLECTION_QUERY = `
+  ${PRODUCT_FRAGMENT}
+  query GetProductsByCollection($handle: String!, $first: Int!) {
+    collection(handle: $handle) {
+      id
+      title
+      handle
+      description
+      image {
+        url
+        altText
+      }
+      products(first: $first) {
+        edges {
+          node {
+            ...ProductFields
+          }
+        }
+      }
+    }
+  }
+`;
+
+const GET_ALL_COLLECTIONS_QUERY = `
+  query GetAllCollections($first: Int!) {
+    collections(first: $first) {
+      edges {
+        node {
+          id
+          title
+          handle
+          description
+          image {
+            url
+            altText
+          }
+        }
+      }
+    }
+  }
+`;
+
+const SEARCH_PRODUCTS_QUERY = `
+  ${PRODUCT_FRAGMENT}
+  query SearchProducts($query: String!, $first: Int!) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          ...ProductFields
+        }
+      }
+    }
+  }
+`;
+
+// ============================================
+// FUNÇÕES DE MAPEAMENTO
+// ============================================
+
+/**
+ * Mapeia imagem Shopify para tipo local
+ */
+function mapShopifyImage(image: ShopifyImage): ProductImage {
+  return {
+    id: extractShopifyId(image.id),
+    src: image.url,
+    alt: image.altText || '',
+  };
+}
+
+/**
+ * Mapeia variante Shopify para tipo local
+ */
+function mapShopifyVariant(variant: ShopifyProductVariant): ProductVariant {
+  const options = variant.selectedOptions || [];
+  const option1 = options.find((o) => o.name.toLowerCase() === 'color')?.value;
+  const option2 = options.find((o) => o.name.toLowerCase() === 'size')?.value;
+
+  return {
+    id: extractShopifyId(variant.id),
+    title: variant.title || 'Default',
+    price: parseFloat(variant.price?.amount || '0'),
+    compareAtPrice: variant.compareAtPrice?.amount
+      ? parseFloat(variant.compareAtPrice.amount)
+      : undefined,
+    available: variant.availableForSale ?? true,
+    sku: variant.sku || '',
+    option1,
+    option2,
+  };
+}
+
+/**
+ * Extrai valor de metafield
+ */
+function getMetafieldValue(
+  metafields: ShopifyProduct['metafields'],
+  key: string
+): string {
+  const field = metafields?.find((m) => m?.key === key);
+  return field?.value || '';
+}
+
+/**
+ * Mapeia produto Shopify para tipo local
+ */
+function mapShopifyProduct(product: ShopifyProduct): Product {
+  const images = product.images.edges.map((e) => mapShopifyImage(e.node));
+  const variants = product.variants.edges.map((e) => mapShopifyVariant(e.node));
+  const firstVariant = variants[0];
+
+  // Extrair metafields customizados
+  const material = getMetafieldValue(product.metafields, 'material');
+  const movement = getMetafieldValue(product.metafields, 'movement');
+  const waterResistance = getMetafieldValue(product.metafields, 'water_resistance');
+  const caseDiameter = getMetafieldValue(product.metafields, 'case_diameter');
+  const featuresRaw = getMetafieldValue(product.metafields, 'features');
+  const shortDescription = getMetafieldValue(product.metafields, 'short_description');
+
+  // Parse features (pode vir como JSON array ou string separada por vírgula)
+  let features: string[] = [];
+  if (featuresRaw) {
+    try {
+      features = JSON.parse(featuresRaw);
+    } catch {
+      features = featuresRaw.split(',').map((f) => f.trim());
+    }
+  }
+
+  // Valores seguros com fallbacks
+  const description = product.description || '';
+  const priceAmount = product.priceRange?.minVariantPrice?.amount || '0';
+  const compareAtAmount = product.compareAtPriceRange?.minVariantPrice?.amount || '0';
+
+  return {
+    id: extractShopifyId(product.id),
+    title: product.title || 'Produto',
+    handle: product.handle || '',
+    description,
+    shortDescription: shortDescription || (description.length > 150 ? description.slice(0, 150) + '...' : description),
+    price: firstVariant?.price || parseFloat(priceAmount),
+    compareAtPrice: firstVariant?.compareAtPrice ||
+      (compareAtAmount !== '0.0' && compareAtAmount !== '0'
+        ? parseFloat(compareAtAmount)
+        : undefined),
+    images,
+    variants,
+    category: product.productType || 'Relógios',
+    tags: product.tags || [],
+    available: product.availableForSale ?? true,
+    totalInventory: product.totalInventory ?? 0,
+    brand: product.vendor || 'Belvoir',
+    material: material || 'Aço Inoxidável',
+    movement: movement || 'Automático',
+    waterResistance: waterResistance || '50m',
+    caseDiameter: caseDiameter || '40mm',
+    features,
+    createdAt: product.createdAt || new Date().toISOString(),
+  };
+}
+
+/**
+ * Mapeia coleção Shopify para tipo local
+ */
+function mapShopifyCollection(collection: ShopifyCollection): Collection {
+  return {
+    id: extractShopifyId(collection.id),
+    title: collection.title,
+    handle: collection.handle,
+    description: collection.description,
+    image: collection.image?.url || '',
+    products: collection.products.edges.map((e) => mapShopifyProduct(e.node)),
+  };
+}
+
+// ============================================
+// FUNÇÕES PÚBLICAS (API DO SERVIÇO)
+// ============================================
+
+/**
+ * Buscar todos os produtos
+ * Retorna produtos mock se Shopify não estiver configurado
+ */
+export async function getAllProducts(limit: number = 50): Promise<Product[]> {
+  // Se Shopify não está configurado, retorna mock
+  if (!isShopifyConfigured()) {
+    console.log('[ProductService] Shopify não configurado, usando dados mock');
+    return mockProducts;
+  }
+
+  console.log('[ProductService] Buscando produtos do Shopify...');
+
+  try {
+    const data = await shopifyFetch<{
+      products: {
+        edges: Array<{ node: ShopifyProduct }>;
+      };
+    }>(GET_ALL_PRODUCTS_QUERY, { first: limit });
+
+    console.log('[ProductService] Resposta recebida, produtos:', data?.products?.edges?.length || 0);
+
+    if (!data?.products?.edges) {
+      console.log('[ProductService] Nenhum produto encontrado, usando mock');
+      return mockProducts;
+    }
+
+    const products = data.products.edges.map((e) => mapShopifyProduct(e.node));
+    console.log('[ProductService] Produtos mapeados:', products.length);
+
+    return products;
+  } catch (error) {
+    console.error('[ProductService] Erro ao buscar produtos:', error);
+    console.log('[ProductService] Retornando dados mock devido ao erro');
+    return mockProducts;
+  }
+}
+
+/**
+ * Buscar produto por handle (slug)
+ */
+export async function getProductByHandle(handle: string): Promise<Product | null> {
+  // Se Shopify não está configurado, busca no mock
+  if (!isShopifyConfigured()) {
+    const product = mockProducts.find((p) => p.handle === handle);
+    return product || null;
+  }
+
+  const data = await shopifyFetch<{
+    product: ShopifyProduct | null;
+  }>(GET_PRODUCT_BY_HANDLE_QUERY, { handle });
+
+  if (!data.product) return null;
+  return mapShopifyProduct(data.product);
+}
+
+/**
+ * Buscar produtos por coleção
+ */
+export async function getProductsByCollection(
+  collectionHandle: string,
+  limit: number = 50
+): Promise<Collection | null> {
+  // Se Shopify não está configurado, filtra do mock
+  if (!isShopifyConfigured()) {
+    const filtered = mockProducts.filter(
+      (p) => p.category.toLowerCase().replace(/\s+/g, '-') === collectionHandle
+    );
+    if (filtered.length === 0) return null;
+    return {
+      id: collectionHandle,
+      title: filtered[0]?.category || collectionHandle,
+      handle: collectionHandle,
+      description: '',
+      image: '',
+      products: filtered,
+    };
+  }
+
+  const data = await shopifyFetch<{
+    collection: ShopifyCollection | null;
+  }>(GET_PRODUCTS_BY_COLLECTION_QUERY, { handle: collectionHandle, first: limit });
+
+  if (!data.collection) return null;
+  return mapShopifyCollection(data.collection);
+}
+
+/**
+ * Buscar todas as coleções (categorias)
+ */
+export async function getAllCollections(limit: number = 20): Promise<string[]> {
+  // Se Shopify não está configurado, retorna mock
+  if (!isShopifyConfigured()) {
+    return mockCategories;
+  }
+
+  const data = await shopifyFetch<{
+    collections: {
+      edges: Array<{
+        node: {
+          title: string;
+          handle: string;
+        };
+      }>;
+    };
+  }>(GET_ALL_COLLECTIONS_QUERY, { first: limit });
+
+  return data.collections.edges.map((e) => e.node.title);
+}
+
+/**
+ * Buscar produtos por termo de pesquisa
+ */
+export async function searchProducts(query: string, limit: number = 20): Promise<Product[]> {
+  // Se Shopify não está configurado, filtra no mock
+  if (!isShopifyConfigured()) {
+    const searchTerm = query.toLowerCase();
+    return mockProducts.filter(
+      (p) =>
+        p.title.toLowerCase().includes(searchTerm) ||
+        p.description.toLowerCase().includes(searchTerm) ||
+        p.brand.toLowerCase().includes(searchTerm) ||
+        p.tags.some((t) => t.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  const data = await shopifyFetch<{
+    products: {
+      edges: Array<{ node: ShopifyProduct }>;
+    };
+  }>(SEARCH_PRODUCTS_QUERY, { query, first: limit });
+
+  return data.products.edges.map((e) => mapShopifyProduct(e.node));
+}
+
+/**
+ * Buscar produtos em destaque (novos ou featured)
+ */
+export async function getFeaturedProducts(limit: number = 8): Promise<Product[]> {
+  // Se Shopify não está configurado, retorna os primeiros do mock
+  if (!isShopifyConfigured()) {
+    return mockProducts.slice(0, limit);
+  }
+
+  // Busca produtos com tag "featured" ou os mais recentes
+  const data = await shopifyFetch<{
+    products: {
+      edges: Array<{ node: ShopifyProduct }>;
+    };
+  }>(SEARCH_PRODUCTS_QUERY, { query: 'tag:featured', first: limit });
+
+  const featured = data.products.edges.map((e) => mapShopifyProduct(e.node));
+
+  // Se não tiver produtos featured, busca os mais recentes
+  if (featured.length === 0) {
+    return getAllProducts(limit);
+  }
+
+  return featured;
+}
+
+/**
+ * Buscar produtos relacionados (mesma categoria)
+ */
+export async function getRelatedProducts(
+  productHandle: string,
+  limit: number = 4
+): Promise<Product[]> {
+  // Primeiro busca o produto atual
+  const product = await getProductByHandle(productHandle);
+  if (!product) return [];
+
+  // Se Shopify não está configurado, filtra do mock
+  if (!isShopifyConfigured()) {
+    return mockProducts
+      .filter((p) => p.category === product.category && p.handle !== productHandle)
+      .slice(0, limit);
+  }
+
+  // Busca produtos da mesma categoria
+  const collection = await getProductsByCollection(
+    product.category.toLowerCase().replace(/\s+/g, '-'),
+    limit + 1
+  );
+
+  if (!collection) return [];
+
+  return collection.products
+    .filter((p) => p.handle !== productHandle)
+    .slice(0, limit);
+}
+
+// Export default para conveniência
+export default {
+  getAllProducts,
+  getProductByHandle,
+  getProductsByCollection,
+  getAllCollections,
+  searchProducts,
+  getFeaturedProducts,
+  getRelatedProducts,
+};

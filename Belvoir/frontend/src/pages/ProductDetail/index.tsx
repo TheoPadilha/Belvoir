@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, ChevronRight } from 'lucide-react';
-import { getProductByHandle, formatPrice, products } from '../../data/products';
+import { Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, ChevronRight, Loader2 } from 'lucide-react';
+import { formatPrice } from '../../data/products';
 import { getReviewSummaryByProductId } from '../../data/reviews';
 import { ProductGallery, VariantSelector, ProductCard } from '../../components/product';
 import { Button } from '../../components/ui';
 import { FadeIn, PageTransition } from '../../components/animations';
 import { StarRating, ProductReviews } from '../../components/reviews';
-import { useCartStore } from '../../store/cartStore';
 import { toast } from '../../store/uiStore';
+import { useProduct, useRelatedProducts } from '../../hooks/useProducts';
+import { useCart } from '../../hooks/useCart';
 import type { ProductVariant } from '../../types';
 
 export const ProductDetailPage = () => {
   const { handle } = useParams<{ handle: string }>();
-  const product = getProductByHandle(handle || '');
-  const { addItem } = useCartStore();
+  const { product, isLoading, error } = useProduct(handle);
+  const { products: relatedProducts } = useRelatedProducts(handle, 4);
+  const { addItem } = useCart();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -29,6 +31,34 @@ export const ProductDetailPage = () => {
     }
   }, [product]);
 
+  // Loading state - deve vir primeiro
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
+          <p className="text-secondary-500">Carregando produto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-3xl mb-4 text-red-600">Erro ao carregar</h1>
+          <p className="text-secondary-500 mb-4">{error}</p>
+          <Link to="/shop" className="text-primary-500 hover:underline">
+            Voltar para a loja
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Not found state
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,7 +76,7 @@ export const ProductDetailPage = () => {
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > currentPrice;
   const reviewSummary = getReviewSummaryByProductId(product.id);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedVariant) {
       toast.error('Selecione uma opção');
       return;
@@ -56,7 +86,7 @@ export const ProductDetailPage = () => {
       return;
     }
 
-    addItem({
+    await addItem({
       productId: product.id,
       variantId: selectedVariant.id,
       title: product.title,
@@ -66,14 +96,7 @@ export const ProductDetailPage = () => {
       image: product.images[0]?.src || '',
       handle: product.handle,
     });
-
-    toast.success('Produto adicionado ao carrinho!');
   };
-
-  // Related products (same category, excluding current)
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
 
   return (
     <PageTransition>
