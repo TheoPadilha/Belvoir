@@ -5,6 +5,8 @@ import { Menu, X, Search, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import logoHorizontal from '../../assets/images/brand/logo-horizontal.png';
+import logoHorizontalWhite from '../../assets/images/brand/logo-horizontal-white.png';
 
 const navLinks = [
   { label: 'Home', href: '/' },
@@ -74,12 +76,13 @@ export const Header = () => {
             {/* Logo */}
             <Link
               to="/"
-              className={`
-                font-display text-2xl lg:text-3xl font-semibold tracking-wider
-                ${textColor} transition-colors
-              `}
+              className="transition-opacity hover:opacity-80"
             >
-              BELVOIR
+              <img
+                src={isScrolled || !isHome ? logoHorizontal : logoHorizontalWhite}
+                alt="Belvoir"
+                className="h-8 lg:h-10 w-auto"
+              />
             </Link>
 
             {/* Navigation (Desktop) */}

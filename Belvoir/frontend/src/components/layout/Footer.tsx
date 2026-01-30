@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { FadeIn } from '../animations';
+import logoWhite from '../../assets/images/brand/logo-horizontal-white.png';
 
 const footerLinks = {
   shop: [
@@ -71,9 +72,11 @@ export const Footer = () => {
           <div className="lg:col-span-2">
             <FadeIn>
               <Link to="/" className="inline-block mb-6">
-                <span className="font-display text-3xl font-semibold tracking-wider">
-                  BELVOIR
-                </span>
+                <img
+                  src={logoWhite}
+                  alt="Belvoir"
+                  className="h-10 w-auto"
+                />
               </Link>
               <p className="text-secondary-300 mb-6 max-w-sm">
                 Desde 1987, a Belvoir representa a excelência em relojoaria de luxo.
