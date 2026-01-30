@@ -3,6 +3,10 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import category1 from '../../assets/images/watches/category-1.jpg';
+import category2 from '../../assets/images/watches/category-2.jpg';
+import category3 from '../../assets/images/watches/category-3.jpg';
+import category4 from '../../assets/images/watches/category-4.jpg';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,28 +19,28 @@ interface Category {
 
 const defaultCategories: Category[] = [
   {
-    name: 'Relógios Femininos',
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600&q=80',
-    count: '120+ modelos',
-    link: '/shop?categoria=feminino',
+    name: 'Belvoir Classic',
+    image: category1,
+    count: '24 modelos',
+    link: '/shop?categoria=classic',
   },
   {
-    name: 'Relógios Masculinos',
-    image: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=600&q=80',
-    count: '150+ modelos',
+    name: 'Belvoir Lux',
+    image: category2,
+    count: '18 modelos',
+    link: '/shop?categoria=lux',
+  },
+  {
+    name: 'Para Ele',
+    image: category3,
+    count: '32 modelos',
     link: '/shop?categoria=masculino',
   },
   {
-    name: 'Vintage',
-    image: 'https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?w=600&q=80',
-    count: '80+ modelos',
-    link: '/shop?categoria=vintage',
-  },
-  {
-    name: 'Minimalista',
-    image: 'https://images.unsplash.com/photo-1533139502658-0198f920d8e8?w=600&q=80',
-    count: '90+ modelos',
-    link: '/shop?categoria=minimalista',
+    name: 'Para Ela',
+    image: category4,
+    count: '28 modelos',
+    link: '/shop?categoria=feminino',
   },
 ];
 

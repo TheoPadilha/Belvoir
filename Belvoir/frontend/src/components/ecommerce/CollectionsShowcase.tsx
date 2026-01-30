@@ -3,6 +3,9 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import collection1 from '../../assets/images/watches/collection-1.jpg';
+import collection2 from '../../assets/images/watches/collection-2.jpg';
+import collection3 from '../../assets/images/watches/collection-3.jpg';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,21 +18,21 @@ interface Collection {
 
 const defaultCollections: Collection[] = [
   {
-    name: 'Coleção Vintage',
-    description: 'Clássicos reinventados',
-    image: 'https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?w=600&q=80',
-    link: '/shop?categoria=vintage',
+    name: 'Coleção Classic',
+    description: 'Elegância atemporal',
+    image: collection1,
+    link: '/shop?categoria=classic',
   },
   {
-    name: 'Coleção Minimal',
-    description: 'Elegância discreta',
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600&q=80',
-    link: '/shop?categoria=minimalista',
+    name: 'Coleção Lux',
+    description: 'Sofisticação suprema',
+    image: collection2,
+    link: '/shop?categoria=lux',
   },
   {
     name: 'Coleção Sport',
     description: 'Performance e estilo',
-    image: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=600&q=80',
+    image: collection3,
     link: '/shop?categoria=esportivo',
   },
 ];

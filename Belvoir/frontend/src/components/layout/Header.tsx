@@ -81,7 +81,7 @@ export const Header = () => {
               <img
                 src={isScrolled || !isHome ? logoHorizontal : logoHorizontalWhite}
                 alt="Belvoir"
-                className="h-8 lg:h-10 w-auto"
+                className="h-12 lg:h-14 w-auto"
               />
             </Link>
 

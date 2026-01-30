@@ -6,10 +6,10 @@ import logoWhite from '../../assets/images/brand/logo-horizontal-white.png';
 const footerLinks = {
   shop: [
     { label: 'Todos os Relógios', href: '/shop' },
-    { label: 'Cronógrafos', href: '/shop?categoria=cronografos' },
-    { label: 'Clássicos', href: '/shop?categoria=classicos' },
-    { label: 'Esportivos', href: '/shop?categoria=esportivos' },
-    { label: 'Alta Relojoaria', href: '/shop?categoria=alta-relojoaria' },
+    { label: 'Belvoir Classic', href: '/shop?categoria=classic' },
+    { label: 'Belvoir Lux', href: '/shop?categoria=lux' },
+    { label: 'Para Ele', href: '/shop?categoria=masculino' },
+    { label: 'Para Ela', href: '/shop?categoria=feminino' },
   ],
   institucional: [
     { label: 'Sobre a Belvoir', href: '/sobre' },
@@ -75,7 +75,7 @@ export const Footer = () => {
                 <img
                   src={logoWhite}
                   alt="Belvoir"
-                  className="h-10 w-auto"
+                  className="h-14 w-auto"
                 />
               </Link>
               <p className="text-secondary-300 mb-6 max-w-sm">

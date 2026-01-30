@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import type { Product } from '../../types';
+import heroWatch from '../../assets/images/watches/hero-watch.jpg';
 
 interface HeroEcommerceProps {
   product?: Product;
@@ -15,14 +16,14 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
   const [isAnimated, setIsAnimated] = useState(true); // Start visible by default
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Default product data if none provided - using a reliable watch image
+  // Default product data if none provided - using local watch image
   const heroProduct = product || {
     id: 'hero-product',
     handle: 'belvoir-premium-2026',
     title: 'Belvoir Premium 2026',
     price: 24900,
     compareAtPrice: 32500,
-    images: [{ src: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=800&q=80', alt: 'Relógio Premium' }],
+    images: [{ src: heroWatch, alt: 'Relógio Belvoir Premium' }],
     shortDescription: 'Onde o design encontra a precisão. Cada relógio é uma obra de arte que transcende o tempo.',
     tags: ['novo', 'destaque'],
   };
