@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 interface InteractiveBackgroundProps {
   variant?: 'light' | 'dark';
 }
 
-export const InteractiveBackground = ({ variant = 'light' }: InteractiveBackgroundProps) => {
+// Otimização: Memoização para evitar re-renderizações já que o componente é fixo e puramente visual
+export const InteractiveBackground = memo(({ variant = 'light' }: InteractiveBackgroundProps) => {
   const bgRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 50, y: 50 });
   const targetPos = useRef({ x: 50, y: 50 });
   const animationRef = useRef<number | undefined>(undefined);
+  const lastUpdate = useRef(0);
 
   useEffect(() => {
     // Check for reduced motion preference
@@ -23,39 +25,28 @@ export const InteractiveBackground = ({ variant = 'light' }: InteractiveBackgrou
     };
 
     // Smooth interpolation animation
-    const animate = () => {
+    const animate = (time: number) => {
+      // Throttle updates to ~60fps if needed, though requestAnimationFrame handles this
+      // We use a small interpolation factor (0.03) for that premium "lazy" follow effect
       targetPos.current.x += (mousePos.current.x - targetPos.current.x) * 0.03;
       targetPos.current.y += (mousePos.current.y - targetPos.current.y) * 0.03;
 
-      if (bgRef.current) {
+      if (bgRef.current && time - lastUpdate.current > 16) { // ~60fps throttle
+        const { x, y } = targetPos.current;
+        
         if (variant === 'dark') {
-          // Dark variant - for dark sections
-          bgRef.current.style.background = `
-            radial-gradient(
-              ellipse 80% 60% at ${targetPos.current.x}% ${targetPos.current.y}%,
-              rgba(184, 115, 51, 0.08) 0%,
-              rgba(139, 92, 36, 0.04) 30%,
-              rgba(28, 28, 28, 0) 70%
-            )
-          `;
+          bgRef.current.style.background = `radial-gradient(ellipse 80% 60% at ${x}% ${y}%, rgba(184,115,51,0.08) 0%, rgba(139,92,36,0.04) 30%, transparent 70%)`;
         } else {
-          // Light variant - for light sections (cream background)
-          bgRef.current.style.background = `
-            radial-gradient(
-              ellipse 70% 50% at ${targetPos.current.x}% ${targetPos.current.y}%,
-              rgba(184, 115, 51, 0.06) 0%,
-              rgba(184, 115, 51, 0.02) 40%,
-              transparent 70%
-            )
-          `;
+          bgRef.current.style.background = `radial-gradient(ellipse 70% 50% at ${x}% ${y}%, rgba(184,115,51,0.06) 0%, rgba(184,115,51,0.02) 40%, transparent 70%)`;
         }
+        lastUpdate.current = time;
       }
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    animate();
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -68,10 +59,11 @@ export const InteractiveBackground = ({ variant = 'light' }: InteractiveBackgrou
   return (
     <div
       ref={bgRef}
-      className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-1000"
+      className="fixed inset-0 pointer-events-none z-0 will-change-[background]"
       aria-hidden="true"
     />
   );
-};
+});
 
+InteractiveBackground.displayName = 'InteractiveBackground';
 export default InteractiveBackground;

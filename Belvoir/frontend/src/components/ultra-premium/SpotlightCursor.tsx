@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { gsap } from 'gsap';
 
-export const SpotlightCursor = () => {
+export const SpotlightCursor = memo(() => {
   const spotlightRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -24,59 +24,70 @@ export const SpotlightCursor = () => {
       mousePos.current = { x: e.clientX, y: e.clientY };
     };
 
-    const animate = () => {
-      // Main spotlight follows mouse smoothly
+    // Use GSAP's quickSetter for maximum performance on frequent updates
+    const xSpotlight = gsap.quickSetter(spotlight, "x", "px");
+    const ySpotlight = gsap.quickSetter(spotlight, "y", "px");
+    const xTrail = gsap.quickSetter(trail, "x", "px");
+    const yTrail = gsap.quickSetter(trail, "y", "px");
+
+    // Smooth movement using GSAP ticker or requestAnimationFrame
+    const updatePosition = () => {
+      // Direct update for spotlight (with slight lag for smoothness)
       gsap.to(spotlight, {
         x: mousePos.current.x - 150,
         y: mousePos.current.y - 150,
-        duration: 0.4,
-        ease: 'power2.out',
+        duration: 0.3,
+        overwrite: 'auto',
+        ease: 'power2.out'
       });
 
-      // Trail follows with more delay
+      // Direct update for trail (with more lag)
       gsap.to(trail, {
         x: mousePos.current.x - 250,
         y: mousePos.current.y - 250,
-        duration: 0.8,
-        ease: 'power2.out',
+        duration: 0.6,
+        overwrite: 'auto',
+        ease: 'power2.out'
       });
-
-      requestAnimationFrame(animate);
     };
 
     // Handle hover states
     const handleLinkEnter = () => {
-      gsap.to(spotlight, {
-        scale: 1.5,
-        duration: 0.4,
-        ease: 'power2.out',
-      });
+      gsap.to(spotlight, { scale: 1.5, duration: 0.3, ease: 'power2.out' });
     };
 
     const handleLinkLeave = () => {
-      gsap.to(spotlight, {
-        scale: 1,
-        duration: 0.4,
-        ease: 'power2.out',
+      gsap.to(spotlight, { scale: 1, duration: 0.3, ease: 'power2.out' });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    gsap.ticker.add(updatePosition);
+
+    // Optimized hover detection
+    const addListeners = (elements: NodeListOf<Element>) => {
+      elements.forEach((el) => {
+        el.addEventListener('mouseenter', handleLinkEnter);
+        el.addEventListener('mouseleave', handleLinkLeave);
       });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    animate();
-
-    // Add hover listeners to links and buttons
     const interactiveElements = document.querySelectorAll('a, button, [data-cursor-hover]');
-    interactiveElements.forEach((el) => {
-      el.addEventListener('mouseenter', handleLinkEnter);
-      el.addEventListener('mouseleave', handleLinkLeave);
-    });
+    addListeners(interactiveElements);
 
-    // MutationObserver for dynamic elements
-    const observer = new MutationObserver(() => {
-      const newElements = document.querySelectorAll('a, button, [data-cursor-hover]');
-      newElements.forEach((el) => {
-        el.addEventListener('mouseenter', handleLinkEnter);
-        el.addEventListener('mouseleave', handleLinkLeave);
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof Element) {
+              const elements = node.querySelectorAll('a, button, [data-cursor-hover]');
+              if (node.matches('a, button, [data-cursor-hover]')) {
+                node.addEventListener('mouseenter', handleLinkEnter);
+                node.addEventListener('mouseleave', handleLinkLeave);
+              }
+              addListeners(elements);
+            }
+          });
+        }
       });
     });
 
@@ -84,10 +95,7 @@ export const SpotlightCursor = () => {
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      interactiveElements.forEach((el) => {
-        el.removeEventListener('mouseenter', handleLinkEnter);
-        el.removeEventListener('mouseleave', handleLinkLeave);
-      });
+      gsap.ticker.remove(updatePosition);
       observer.disconnect();
     };
   }, []);
@@ -96,19 +104,17 @@ export const SpotlightCursor = () => {
 
   return (
     <>
-      {/* Outer trail glow */}
       <div
         ref={trailRef}
-        className="fixed w-[500px] h-[500px] rounded-full pointer-events-none z-[9998]"
+        className="fixed w-[500px] h-[500px] rounded-full pointer-events-none z-[9998] will-change-transform"
         style={{
           background: 'radial-gradient(circle, rgba(184, 115, 51, 0.08) 0%, transparent 60%)',
           mixBlendMode: 'screen',
         }}
       />
-      {/* Main spotlight */}
       <div
         ref={spotlightRef}
-        className="fixed w-[300px] h-[300px] rounded-full pointer-events-none z-[9999]"
+        className="fixed w-[300px] h-[300px] rounded-full pointer-events-none z-[9999] will-change-transform"
         style={{
           background: 'radial-gradient(circle, rgba(184, 115, 51, 0.15) 0%, rgba(139, 92, 36, 0.05) 40%, transparent 70%)',
           mixBlendMode: 'screen',
@@ -116,6 +122,7 @@ export const SpotlightCursor = () => {
       />
     </>
   );
-};
+});
 
+SpotlightCursor.displayName = 'SpotlightCursor';
 export default SpotlightCursor;
