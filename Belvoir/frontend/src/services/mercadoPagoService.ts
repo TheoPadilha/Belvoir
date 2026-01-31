@@ -101,11 +101,13 @@ class MercadoPagoService {
         body: JSON.stringify({
           items: items.map((item) => ({
             id: item.id,
+            productId: item.productId,
+            variantId: item.variantId,
             title: item.title,
             variantTitle: item.variantTitle,
-            price: item.price,
             quantity: item.quantity,
             image: item.image,
+            // NÃO enviar price - o servidor busca do Shopify por segurança
           })),
           customer,
           shippingCost,
