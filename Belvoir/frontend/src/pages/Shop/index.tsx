@@ -41,7 +41,7 @@ const customCategories = [
   {
     name: 'Para Ele',
     handle: 'masculino',
-    tags: ['classic', 'chronos', 'navy', 'luxury', 'masculino', 'belvoir-classic', 'belvoir-chronos', 'belvoir-navy', 'belvoir-luxury'],
+    tags: ['classic', 'chronos', 'navy', 'luxury', 'prestige', 'daily', 'masculino', 'belvoir-classic', 'belvoir-chronos', 'belvoir-navy', 'belvoir-luxury', 'belvoir-prestige', 'belvoir-daily'],
   },
 ];
 
