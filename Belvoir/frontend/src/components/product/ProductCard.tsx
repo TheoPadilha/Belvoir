@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Eye } from 'lucide-react';
@@ -15,7 +15,8 @@ interface ProductCardProps {
   theme?: 'light' | 'dark';
 }
 
-export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
+// Otimização: Memoização do componente para evitar re-renderizações desnecessárias em listas grandes
+export const ProductCard = memo(({ product, theme = 'light' }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { addItem } = useCartStore();
   const navigate = useNavigate();
@@ -63,12 +64,13 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-secondary-100 mb-4">
-        {/* Main Image */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-secondary-100 mb-4 rounded-lg">
+        {/* Main Image - Otimização: loading="lazy" para imagens fora da dobra */}
         <motion.img
           src={product.images[0]?.src}
           alt={product.title}
           className="w-full h-full object-cover"
+          loading="lazy"
           animate={{ scale: isHovered ? 1.05 : 1 }}
           transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         />
@@ -80,6 +82,7 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
             alt={product.title}
             className="absolute inset-0 w-full h-full object-cover"
             initial={{ opacity: 0 }}
+            loading="lazy"
             animate={{ opacity: isHovered ? 1 : 0 }}
             transition={{ duration: 0.4 }}
           />
@@ -105,7 +108,7 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
           <button
             onClick={handleQuickAdd}
             disabled={!product.available}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-charcoal text-white text-sm font-medium uppercase tracking-wider hover:bg-secondary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-charcoal text-white text-sm font-medium uppercase tracking-wider hover:bg-secondary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
           >
             <ShoppingBag size={16} />
             Adicionar
@@ -116,7 +119,7 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
               e.stopPropagation();
               navigate(`/produto/${product.handle}`);
             }}
-            className="p-3 bg-white text-charcoal hover:bg-secondary-100 transition-colors"
+            className="p-3 bg-white text-charcoal hover:bg-secondary-100 transition-colors rounded-md shadow-sm"
             aria-label="Ver detalhes do produto"
           >
             <Eye size={16} />
@@ -156,4 +159,6 @@ export const ProductCard = ({ product, theme = 'light' }: ProductCardProps) => {
       </div>
     </Link>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
