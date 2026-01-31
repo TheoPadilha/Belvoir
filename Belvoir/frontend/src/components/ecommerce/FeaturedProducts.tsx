@@ -1,8 +1,10 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
 import type { Product } from '../../types';
 import { useCart } from '../../hooks/useCart';
+import { StarRating } from '../reviews/StarRating';
+import { getReviewSummaryByProductId } from '../../data/reviews';
 
 interface FeaturedProductsProps {
   products: Product[];
@@ -10,7 +12,7 @@ interface FeaturedProductsProps {
   subtitle?: string;
 }
 
-// Otimização: Memoização e remoção de GSAP para melhor performance
+// Versão Ultra-Leve: Removido GSAP e ScrollTrigger. Foco em velocidade de carregamento.
 export const FeaturedProducts = memo(({
   products,
   title = 'Mais Vendidos',
@@ -18,15 +20,12 @@ export const FeaturedProducts = memo(({
 }: FeaturedProductsProps) => {
   const { addItem, isUpdating } = useCart();
 
-  const handleAddToCart = useCallback(async (product: Product, e: React.MouseEvent) => {
+  const handleAddToCart = async (product: Product, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     const variant = product.variants?.[0];
-    if (!variant) {
-      console.error('Product has no variants');
-      return;
-    }
+    if (!variant) return;
 
     await addItem({
       productId: product.id,
@@ -38,7 +37,7 @@ export const FeaturedProducts = memo(({
       image: product.images[0]?.src || '',
       handle: product.handle,
     });
-  }, [addItem]);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -49,112 +48,71 @@ export const FeaturedProducts = memo(({
   };
 
   return (
-    <section className="py-20 md:py-24 bg-secondary-50 overflow-hidden">
+    <section className="py-16 md:py-20 bg-secondary-50">
       <div className="container-custom">
-        {/* Header - Centered */}
-        <div className="text-center mb-12 md:mb-16">
-          <span className="text-sm uppercase tracking-[0.3em] text-primary-500 mb-4 block">
+        <div className="text-center mb-10 md:mb-12">
+          <span className="text-sm uppercase tracking-[0.2em] text-primary-500 mb-2 block">
             Destaques
           </span>
-          <h2 className="font-display text-4xl md:text-5xl lg:text-6xl text-charcoal mb-3">
+          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl text-charcoal mb-3">
             {title}
           </h2>
-          <p className="text-lg md:text-xl text-secondary-600 mb-6">{subtitle}</p>
+          <p className="text-base text-secondary-600 mb-6">{subtitle}</p>
           <Link
             to="/shop"
-            className="inline-flex items-center gap-2 text-lg font-medium text-charcoal hover:text-primary-600 hover:gap-4 transition-all"
+            className="inline-flex items-center gap-2 text-charcoal hover:text-primary-600 transition-all"
           >
             <span>Ver Todos</span>
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.slice(0, 4).map((product) => {
             const discount = product.compareAtPrice
               ? Math.round((1 - product.price / product.compareAtPrice) * 100)
               : 0;
+            const reviewSummary = getReviewSummaryByProductId(product.id);
 
             return (
-              <div
-                key={product.id}
-                className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full"
-              >
-                {/* Image */}
-                <Link
-                  to={`/produto/${product.handle}`}
-                  className="relative block aspect-square overflow-hidden bg-secondary-100"
-                >
+              <div key={product.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+                <Link to={`/produto/${product.handle}`} className="relative block aspect-square bg-secondary-100">
                   <img
                     src={product.images[0]?.src}
                     alt={product.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                   />
-
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {product.tags?.includes('destaque') && (
-                      <div className="bg-charcoal text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                        Best Seller
-                      </div>
-                    )}
-                    {product.tags?.includes('novo') && !product.tags?.includes('destaque') && (
-                      <div className="bg-primary-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                        Novo
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Discount badge */}
                   {discount > 0 && (
-                    <div className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full">
+                    <div className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
                       -{discount}%
                     </div>
                   )}
-
-                  {/* Quick View overlay */}
-                  <div className="absolute inset-0 bg-charcoal/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <span className="bg-white text-charcoal px-6 py-2 rounded-full font-bold text-sm shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      Ver Detalhes
-                    </span>
-                  </div>
                 </Link>
 
-                {/* Info */}
-                <div className="p-5 md:p-6 flex flex-col flex-1">
-                  {/* Name */}
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <StarRating rating={reviewSummary.averageRating || 4.8} size="sm" />
+                    <span className="text-[10px] text-secondary-500">({reviewSummary.totalReviews || 12})</span>
+                  </div>
+
                   <Link to={`/produto/${product.handle}`} className="flex-1">
-                    <h3 className="text-lg font-bold text-charcoal mb-2 hover:text-primary-600 transition-colors line-clamp-1">
+                    <h3 className="text-base font-bold text-charcoal mb-2 hover:text-primary-600 line-clamp-1">
                       {product.title}
                     </h3>
                   </Link>
 
-                  {/* Price */}
                   <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-xl font-bold text-charcoal">
-                      {formatPrice(product.price)}
-                    </span>
-                    {product.compareAtPrice && (
-                      <span className="text-sm text-secondary-400 line-through">
-                        {formatPrice(product.compareAtPrice)}
-                      </span>
-                    )}
+                    <span className="text-lg font-bold text-charcoal">{formatPrice(product.price)}</span>
                   </div>
 
-                  {/* Add to cart */}
                   <button
                     onClick={(e) => handleAddToCart(product, e)}
                     disabled={isUpdating || !product.available}
-                    className="w-full bg-charcoal text-white py-3 rounded-xl font-bold hover:bg-primary-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                    className="w-full bg-charcoal text-white py-2.5 rounded-lg font-bold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {isUpdating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ShoppingBag className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                    )}
-                    <span className="text-sm">{product.available ? 'Adicionar ao Carrinho' : 'Indisponível'}</span>
+                    {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                    <span className="text-xs">{product.available ? 'Adicionar' : 'Indisponível'}</span>
                   </button>
                 </div>
               </div>
