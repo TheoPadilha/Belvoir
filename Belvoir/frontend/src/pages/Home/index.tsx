@@ -2,7 +2,6 @@ import {
   HeroEcommerce,
   CategoryGrid,
   FeaturedProducts,
-  CollectionsShowcase,
   Testimonials,
   NewsletterSection,
 } from '../../components/ecommerce';
@@ -28,7 +27,7 @@ export const HomePage = () => {
         {/* Só mostra o resto do conteúdo depois que os produtos carregaram */}
         {!isLoading && products.length > 0 && (
           <>
-            {/* 2. Grid de Categorias - usa imagens locais por padrão */}
+            {/* 2. Grid de Categorias */}
             <CategoryGrid />
 
             {/* 3. Produtos em destaque (Best Sellers) */}
@@ -38,13 +37,10 @@ export const HomePage = () => {
               subtitle="Os relógios favoritos dos nossos clientes"
             />
 
-            {/* 4. Showcase de Coleções - usa imagens locais por padrão */}
-            <CollectionsShowcase />
-
-            {/* 5. Depoimentos / Social Proof */}
+            {/* 4. Depoimentos / Social Proof */}
             <Testimonials />
 
-            {/* 6. Newsletter */}
+            {/* 5. Newsletter */}
             <NewsletterSection />
           </>
         )}

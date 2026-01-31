@@ -90,7 +90,10 @@ export const CheckoutPage = () => {
       );
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
-      toast.error('Erro ao processar pagamento. Tente novamente.');
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Erro ao processar pagamento. Tente novamente.';
+      toast.error(errorMessage);
       setIsProcessing(false);
     }
   };

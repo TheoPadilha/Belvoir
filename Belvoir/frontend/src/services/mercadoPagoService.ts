@@ -90,31 +90,60 @@ class MercadoPagoService {
     customer: CustomerInfo,
     shippingCost: number
   ): Promise<PreferenceResponse> {
-    const response = await fetch(`${API_URL}/create-preference`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        items: items.map((item) => ({
-          id: item.id,
-          title: item.title,
-          variantTitle: item.variantTitle,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-        })),
-        customer,
-        shippingCost,
-      }),
-    });
+    let response: Response;
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erro ao criar preferência de pagamento');
+    try {
+      response = await fetch(`${API_URL}/create-preference`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            variantTitle: item.variantTitle,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          })),
+          customer,
+          shippingCost,
+        }),
+      });
+    } catch (networkError) {
+      throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
     }
 
-    return response.json();
+    // Handle 404 - API endpoint not available (development mode without vercel dev)
+    if (response.status === 404) {
+      throw new Error(
+        'API de pagamento não disponível. Para testar pagamentos localmente, ' +
+        'execute "vercel dev" na pasta do projeto em vez de "npm run dev".'
+      );
+    }
+
+    if (!response.ok) {
+      // Try to parse error response
+      let errorMessage = 'Erro ao criar preferência de pagamento';
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        }
+      } catch {
+        // If we can't parse the error, use the default message
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Parse successful response
+    try {
+      return await response.json();
+    } catch {
+      throw new Error('Resposta inválida do servidor de pagamento.');
+    }
   }
 
   /**

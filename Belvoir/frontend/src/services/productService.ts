@@ -94,25 +94,20 @@ interface ShopifyCollection {
 // GRAPHQL FRAGMENTS
 // ============================================
 
+// Fragment otimizado - imagens com tamanho reduzido para performance
 const PRODUCT_FRAGMENT = `
   fragment ProductFields on Product {
     id
     title
     handle
     description
-    descriptionHtml
     availableForSale
     productType
     vendor
     tags
     createdAt
-    updatedAt
     priceRange {
       minVariantPrice {
-        amount
-        currencyCode
-      }
-      maxVariantPrice {
         amount
         currencyCode
       }
@@ -122,23 +117,17 @@ const PRODUCT_FRAGMENT = `
         amount
         currencyCode
       }
-      maxVariantPrice {
-        amount
-        currencyCode
-      }
     }
-    images(first: 10) {
+    images(first: 3) {
       edges {
         node {
           id
-          url
+          url(transform: { maxWidth: 600, maxHeight: 600, crop: CENTER })
           altText
-          width
-          height
         }
       }
     }
-    variants(first: 20) {
+    variants(first: 5) {
       edges {
         node {
           id
@@ -161,11 +150,6 @@ const PRODUCT_FRAGMENT = `
       }
     }
     metafields(identifiers: [
-      { namespace: "custom", key: "material" },
-      { namespace: "custom", key: "movement" },
-      { namespace: "custom", key: "water_resistance" },
-      { namespace: "custom", key: "case_diameter" },
-      { namespace: "custom", key: "features" },
       { namespace: "custom", key: "short_description" }
     ]) {
       key
@@ -309,32 +293,17 @@ function getMetafieldValue(
 }
 
 /**
- * Mapeia produto Shopify para tipo local
+ * Mapeia produto Shopify para tipo local (versão otimizada)
  */
 function mapShopifyProduct(product: ShopifyProduct): Product {
-  const images = product.images.edges.map((e) => mapShopifyImage(e.node));
-  const variants = product.variants.edges.map((e) => mapShopifyVariant(e.node));
+  const images = product.images?.edges?.map((e) => mapShopifyImage(e.node)) || [];
+  const variants = product.variants?.edges?.map((e) => mapShopifyVariant(e.node)) || [];
   const firstVariant = variants[0];
 
-  // Extrair metafields customizados
-  const material = getMetafieldValue(product.metafields, 'material');
-  const movement = getMetafieldValue(product.metafields, 'movement');
-  const waterResistance = getMetafieldValue(product.metafields, 'water_resistance');
-  const caseDiameter = getMetafieldValue(product.metafields, 'case_diameter');
-  const featuresRaw = getMetafieldValue(product.metafields, 'features');
+  // Extrair short_description do metafield
   const shortDescription = getMetafieldValue(product.metafields, 'short_description');
 
-  // Parse features (pode vir como JSON array ou string separada por vírgula)
-  let features: string[] = [];
-  if (featuresRaw) {
-    try {
-      features = JSON.parse(featuresRaw);
-    } catch {
-      features = featuresRaw.split(',').map((f) => f.trim());
-    }
-  }
-
-  // Valores seguros com fallbacks
+  // Valores seguros
   const description = product.description || '';
   const priceAmount = product.priceRange?.minVariantPrice?.amount || '0';
   const compareAtAmount = product.compareAtPriceRange?.minVariantPrice?.amount || '0';
@@ -352,16 +321,16 @@ function mapShopifyProduct(product: ShopifyProduct): Product {
         : undefined),
     images,
     variants,
-    category: product.productType || 'Relógios',
+    category: product.productType || 'Geral',
     tags: product.tags || [],
     available: product.availableForSale ?? true,
-    totalInventory: product.totalInventory ?? 0,
+    totalInventory: 0,
     brand: product.vendor || 'Belvoir',
-    material: material || 'Aço Inoxidável',
-    movement: movement || 'Automático',
-    waterResistance: waterResistance || '50m',
-    caseDiameter: caseDiameter || '40mm',
-    features,
+    material: '',
+    movement: '',
+    waterResistance: '',
+    caseDiameter: '',
+    features: [],
     createdAt: product.createdAt || new Date().toISOString(),
   };
 }
@@ -381,14 +350,39 @@ function mapShopifyCollection(collection: ShopifyCollection): Collection {
 }
 
 // ============================================
+// CACHE SIMPLES PARA EVITAR RE-FETCHES
+// ============================================
+
+const cache: {
+  products: Product[] | null;
+  categories: string[] | null;
+  timestamp: number;
+} = {
+  products: null,
+  categories: null,
+  timestamp: 0,
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+function isCacheValid(): boolean {
+  return Date.now() - cache.timestamp < CACHE_DURATION;
+}
+
+// ============================================
 // FUNÇÕES PÚBLICAS (API DO SERVIÇO)
 // ============================================
 
 /**
- * Buscar todos os produtos do Shopify
- * Retorna array vazio se Shopify não estiver configurado (para mostrar loading/erro na UI)
+ * Buscar todos os produtos do Shopify (com cache)
  */
 export async function getAllProducts(limit: number = 50): Promise<Product[]> {
+  // Retorna do cache se válido
+  if (cache.products && isCacheValid()) {
+    console.log('[ProductService] Retornando do cache');
+    return cache.products;
+  }
+
   // Se Shopify não está configurado, retorna array vazio
   if (!isShopifyConfigured()) {
     console.log('[ProductService] Shopify não configurado');
@@ -412,7 +406,12 @@ export async function getAllProducts(limit: number = 50): Promise<Product[]> {
     }
 
     const products = data.products.edges.map((e) => mapShopifyProduct(e.node));
-    console.log('[ProductService] Produtos mapeados:', products.length);
+
+    // Salvar no cache
+    cache.products = products;
+    cache.timestamp = Date.now();
+
+    console.log('[ProductService] Produtos mapeados e cacheados:', products.length);
 
     return products;
   } catch (error) {

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { OptimizedImage } from '../ui/OptimizedImage';
 import category1 from '../../assets/images/watches/category-1.jpg';
-import category2 from '../../assets/images/watches/category-2.jpg';
 import category3 from '../../assets/images/watches/category-3.jpg';
 import category4 from '../../assets/images/watches/category-4.jpg';
 
@@ -14,27 +14,21 @@ interface Category {
 
 const defaultCategories: Category[] = [
   {
-    name: 'Belvoir Classic',
-    image: category1,
-    count: '24 modelos',
-    link: '/shop?categoria=classic',
-  },
-  {
     name: 'Belvoir Lux',
-    image: category2,
-    count: '18 modelos',
+    image: category1,
+    count: 'Coleção Premium',
     link: '/shop?categoria=lux',
   },
   {
     name: 'Para Ele',
     image: category3,
-    count: '32 modelos',
+    count: 'Relógios Masculinos',
     link: '/shop?categoria=masculino',
   },
   {
     name: 'Para Ela',
     image: category4,
-    count: '28 modelos',
+    count: 'Relógios Femininos',
     link: '/shop?categoria=feminino',
   },
 ];
@@ -61,19 +55,20 @@ export const CategoryGrid = ({ categories = defaultCategories }: CategoryGridPro
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category, index) => (
             <Link
               key={index}
               to={category.link}
               className="group relative h-80 md:h-96 rounded-2xl overflow-hidden cursor-pointer"
             >
-              {/* Image */}
-              <img
+              {/* Image - Otimizada com lazy loading e placeholder */}
+              <OptimizedImage
                 src={category.image}
                 alt={category.name}
-                loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                containerClassName="absolute inset-0"
+                placeholderColor="bg-secondary-300"
               />
 
               {/* Overlay gradient */}

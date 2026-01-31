@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { OptimizedImage } from '../ui/OptimizedImage';
 import collection1 from '../../assets/images/watches/collection-1.jpg';
 import collection2 from '../../assets/images/watches/collection-2.jpg';
 import collection3 from '../../assets/images/watches/collection-3.jpg';
@@ -13,22 +14,22 @@ interface Collection {
 
 const defaultCollections: Collection[] = [
   {
-    name: 'Coleção Classic',
-    description: 'Elegância atemporal',
-    image: collection1,
-    link: '/shop?categoria=classic',
-  },
-  {
-    name: 'Coleção Lux',
+    name: 'Belvoir Lux',
     description: 'Sofisticação suprema',
-    image: collection2,
+    image: collection1,
     link: '/shop?categoria=lux',
   },
   {
-    name: 'Coleção Sport',
-    description: 'Performance e estilo',
+    name: 'Para Ele',
+    description: 'Relógios masculinos',
+    image: collection2,
+    link: '/shop?categoria=masculino',
+  },
+  {
+    name: 'Para Ela',
+    description: 'Relógios femininos',
     image: collection3,
-    link: '/shop?categoria=esportivo',
+    link: '/shop?categoria=feminino',
   },
 ];
 
@@ -61,11 +62,13 @@ export const CollectionsShowcase = ({ collections = defaultCollections }: Collec
               to={collection.link}
               className="group relative h-[400px] md:h-[500px] lg:h-[600px] rounded-2xl overflow-hidden bg-secondary-800"
             >
-              <img
+              {/* Image - Otimizada com lazy loading e placeholder */}
+              <OptimizedImage
                 src={collection.image}
                 alt={collection.name}
-                loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                containerClassName="absolute inset-0"
+                placeholderColor="bg-secondary-700"
               />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />

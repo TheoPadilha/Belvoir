@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X, Grid, List, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { formatPrice } from '../../data/products';
-import { useProducts, useCategories } from '../../hooks/useProducts';
+import { useProducts } from '../../hooks/useProducts';
 import { ProductCard } from '../../components/product/ProductCard';
 import { Button, Select } from '../../components/ui';
 import type { Product } from '../../types';
@@ -21,21 +21,41 @@ const sortOptions = [
 
 const priceRanges = [
   { value: 'all', label: 'Todos os Preços' },
-  { value: '0-500', label: 'Até R$ 500' },
-  { value: '500-1000', label: 'R$ 500 - R$ 1.000' },
-  { value: '1000-2000', label: 'R$ 1.000 - R$ 2.000' },
-  { value: '2000+', label: 'Acima de R$ 2.000' },
+  { value: '0-200', label: 'Até R$ 200' },
+  { value: '200-300', label: 'R$ 200 - R$ 300' },
+  { value: '300-400', label: 'R$ 300 - R$ 400' },
 ];
+
+// Categorias customizadas com seus filtros de tags/tipos
+const customCategories = [
+  {
+    name: 'Belvoir Lux',
+    handle: 'lux',
+    tags: ['classic', 'navy', 'prestige', 'luxury', 'lux'],
+  },
+  {
+    name: 'Para Ela',
+    handle: 'feminino',
+    tags: ['beauty', 'her', 'feminino', 'belvoir-beauty', 'belvoir-her'],
+  },
+  {
+    name: 'Para Ele',
+    handle: 'masculino',
+    tags: ['classic', 'chronos', 'navy', 'luxury', 'masculino', 'belvoir-classic', 'belvoir-chronos', 'belvoir-navy', 'belvoir-luxury'],
+  },
+];
+
+const PRODUCTS_PER_PAGE = 12;
 
 export const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentImage, setCurrentImage] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
-  // Buscar produtos e categorias do Shopify
-  const { products, isLoading: isLoadingProducts, error: productsError } = useProducts(100);
-  const { categories } = useCategories();
+  // Buscar produtos do Shopify
+  const { products, isLoading: isLoadingProducts, error: productsError } = useProducts(50);
 
   // Auto-advance carousel - otimizado
   useEffect(() => {
@@ -59,23 +79,32 @@ export const ShopPage = () => {
 
     let result = [...products];
 
-    // Category filter
-    if (selectedCategory && categories && categories.length > 0) {
-      const categoryName = categories.find(
-        (c) => c.toLowerCase().replace(/\s+/g, '-') === selectedCategory
-      );
-      if (categoryName) {
-        result = result.filter((p) => p.category === categoryName);
+    // Category filter - usa customCategories para filtrar por tags
+    if (selectedCategory) {
+      const customCat = customCategories.find(c => c.handle === selectedCategory);
+      if (customCat) {
+        // Filtra produtos que tenham alguma das tags da categoria
+        result = result.filter((p) => {
+          const productTags = p.tags?.map(t => t.toLowerCase()) || [];
+          const productTitle = p.title?.toLowerCase() || '';
+          const productCategory = p.category?.toLowerCase() || '';
+
+          return customCat.tags.some(tag => {
+            const tagLower = tag.toLowerCase();
+            return productTags.some(pt => pt.includes(tagLower)) ||
+                   productTitle.includes(tagLower) ||
+                   productCategory.includes(tagLower);
+          });
+        });
       }
     }
 
     // Price filter
-    if (selectedPriceRange !== 'all') {
-      const [min, max] = selectedPriceRange.split('-').map((v) => {
-        if (v.includes('+')) return Infinity;
-        return parseInt(v);
-      });
-      result = result.filter((p) => p.price >= min && p.price <= (max || Infinity));
+    if (selectedPriceRange && selectedPriceRange !== 'all') {
+      const [minStr, maxStr] = selectedPriceRange.split('-');
+      const min = parseInt(minStr) || 0;
+      const max = maxStr?.includes('+') ? Infinity : (parseInt(maxStr) || Infinity);
+      result = result.filter((p) => p.price >= min && p.price <= max);
     }
 
     // Sort
@@ -96,7 +125,7 @@ export const ShopPage = () => {
     }
 
     return result;
-  }, [products, categories, selectedCategory, selectedSort, selectedPriceRange]);
+  }, [products, selectedCategory, selectedSort, selectedPriceRange]);
 
   const updateFilter = useCallback((key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -106,10 +135,12 @@ export const ShopPage = () => {
       newParams.delete(key);
     }
     setSearchParams(newParams);
+    setVisibleCount(PRODUCTS_PER_PAGE); // Reset pagination
   }, [searchParams, setSearchParams]);
 
   const clearFilters = useCallback(() => {
     setSearchParams({});
+    setVisibleCount(PRODUCTS_PER_PAGE); // Reset pagination
   }, [setSearchParams]);
 
   const hasActiveFilters = selectedCategory || selectedPriceRange !== 'all';
@@ -245,23 +276,20 @@ export const ShopPage = () => {
                         Todas as Categorias
                       </button>
                     </li>
-                    {categories.map((category) => {
-                      const handle = category.toLowerCase().replace(/\s+/g, '-');
-                      return (
-                        <li key={category}>
-                          <button
-                            onClick={() => updateFilter('categoria', handle)}
-                            className={`block w-full text-left py-2 px-3 rounded transition-colors ${
-                              selectedCategory === handle
-                                ? 'bg-secondary-100 font-medium'
-                                : 'hover:bg-secondary-50'
-                            }`}
-                          >
-                            {category}
-                          </button>
-                        </li>
-                      );
-                    })}
+                    {customCategories.map((cat) => (
+                      <li key={cat.handle}>
+                        <button
+                          onClick={() => updateFilter('categoria', cat.handle)}
+                          className={`block w-full text-left py-2 px-3 rounded transition-colors ${
+                            selectedCategory === cat.handle
+                              ? 'bg-secondary-100 font-medium'
+                              : 'hover:bg-secondary-50'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
@@ -322,23 +350,38 @@ export const ShopPage = () => {
                   </Button>
                 </div>
               ) : (
-                <div
-                  className={
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6'
-                      : 'space-y-6'
-                  }
-                >
-                  {filteredProducts.map((product) => (
-                    <div key={product.id}>
-                      {viewMode === 'grid' ? (
-                        <ProductCard product={product} />
-                      ) : (
-                        <ProductListItem product={product} />
-                      )}
+                <>
+                  <div
+                    className={
+                      viewMode === 'grid'
+                        ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6'
+                        : 'space-y-6'
+                    }
+                  >
+                    {filteredProducts.slice(0, visibleCount).map((product) => (
+                      <div key={product.id}>
+                        {viewMode === 'grid' ? (
+                          <ProductCard product={product} />
+                        ) : (
+                          <ProductListItem product={product} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Load More Button */}
+                  {visibleCount < filteredProducts.length && (
+                    <div className="text-center mt-10">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)}
+                        className="px-8"
+                      >
+                        Carregar Mais ({filteredProducts.length - visibleCount} restantes)
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
