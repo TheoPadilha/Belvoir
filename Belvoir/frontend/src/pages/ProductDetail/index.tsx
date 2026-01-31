@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, ChevronRight, Loader2 } from 'lucide-react';
 import { formatPrice } from '../../data/products';
-import { getReviewSummaryByProductId } from '../../data/reviews';
 import { ProductGallery, VariantSelector, ProductCard } from '../../components/product';
 import { Button } from '../../components/ui';
 import { FadeIn, PageTransition } from '../../components/animations';
-import { StarRating, ProductReviews } from '../../components/reviews';
+import { ProductReviews } from '../../components/reviews';
 import { toast } from '../../store/uiStore';
 import { useProduct, useRelatedProducts } from '../../hooks/useProducts';
 import { useCart } from '../../hooks/useCart';
@@ -74,7 +72,6 @@ export const ProductDetailPage = () => {
 
   const currentPrice = selectedVariant?.price || product.price;
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > currentPrice;
-  const reviewSummary = getReviewSummaryByProductId(product.id);
 
   const handleAddToCart = async () => {
     if (!selectedVariant) {
@@ -142,18 +139,6 @@ export const ProductDetailPage = () => {
                 <h1 className="font-display text-3xl md:text-4xl text-charcoal mb-3">
                   {product.title}
                 </h1>
-                {/* Star Rating */}
-                {reviewSummary.totalReviews > 0 && (
-                  <div className="flex items-center gap-3 mb-4">
-                    <StarRating rating={reviewSummary.averageRating} size="md" />
-                    <a
-                      href="#avaliacoes"
-                      className="text-sm text-secondary-500 hover:text-primary-500 transition-colors"
-                    >
-                      {reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'avaliação' : 'avaliações'}
-                    </a>
-                  </div>
-                )}
               </FadeIn>
 
               {/* Price */}
@@ -288,10 +273,7 @@ export const ProductDetailPage = () => {
                       >
                         {tab.label}
                         {activeTab === tab.id && (
-                          <motion.span
-                            layoutId="tab-indicator"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary-500"
-                          />
+                          <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary-500 transition-all" />
                         )}
                       </button>
                     ))}

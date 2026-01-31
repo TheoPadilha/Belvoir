@@ -1,101 +1,82 @@
-import { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
+import { useEffect, useRef, useState } from 'react';
 
 interface FadeInProps {
   children: React.ReactNode;
   direction?: 'up' | 'down' | 'left' | 'right' | 'none';
   delay?: number;
   duration?: number;
-  distance?: number;
   className?: string;
-  once?: boolean;
-  threshold?: number;
 }
 
+// Versão otimizada usando CSS + IntersectionObserver (sem GSAP)
 export const FadeIn = ({
   children,
   direction = 'up',
   delay = 0,
-  duration = 0.8,
-  distance = 40,
+  duration = 0.5,
   className = '',
-  once = true,
-  threshold = 0.2,
 }: FadeInProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
+    // Verificar preferência de movimento reduzido
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      gsap.set(element, { opacity: 1, x: 0, y: 0 });
+      setIsVisible(true);
       return;
     }
 
-    const directionMap = {
-      up: { y: distance, x: 0 },
-      down: { y: -distance, x: 0 },
-      left: { x: distance, y: 0 },
-      right: { x: -distance, y: 0 },
-      none: { x: 0, y: 0 },
-    };
-
-    const { x, y } = directionMap[direction];
-
-    gsap.set(element, { opacity: 0, x, y });
-
-    const animation = gsap.to(element, {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      duration,
-      delay,
-      ease: 'power3.out',
-      scrollTrigger: {
-        trigger: element,
-        start: `top ${100 - threshold * 100}%`,
-        toggleActions: once ? 'play none none none' : 'play reverse play reverse',
-      },
-    });
-
-    // Fallback: ensure visibility after reasonable delay
-    const fallbackTimeout = setTimeout(() => {
-      if (element && window.getComputedStyle(element).opacity === '0') {
-        gsap.set(element, { opacity: 1, x: 0, y: 0 });
-      }
-    }, (delay + duration + 2) * 1000);
-
-    return () => {
-      clearTimeout(fallbackTimeout);
-      animation.kill();
-      ScrollTrigger.getAll().forEach((trigger) => {
-        if (trigger.vars.trigger === element) {
-          trigger.kill();
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
         }
-      });
-    };
-  }, [direction, delay, duration, distance, once, threshold]);
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const getTransformStyle = () => {
+    if (isVisible) return 'translate(0, 0)';
+
+    switch (direction) {
+      case 'up': return 'translate(0, 30px)';
+      case 'down': return 'translate(0, -30px)';
+      case 'left': return 'translate(30px, 0)';
+      case 'right': return 'translate(-30px, 0)';
+      default: return 'translate(0, 0)';
+    }
+  };
 
   return (
-    <div ref={ref} className={className}>
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: getTransformStyle(),
+        transition: `opacity ${duration}s ease-out ${delay}s, transform ${duration}s ease-out ${delay}s`,
+      }}
+    >
       {children}
     </div>
   );
 };
 
-// Staggered fade in for lists
+// Versão simplificada do StaggerFadeIn
 interface StaggerFadeInProps {
   children: React.ReactNode[];
   direction?: 'up' | 'down' | 'left' | 'right' | 'none';
   stagger?: number;
-  delay?: number;
-  duration?: number;
-  distance?: number;
   className?: string;
   itemClassName?: string;
 }
@@ -104,76 +85,15 @@ export const StaggerFadeIn = ({
   children,
   direction = 'up',
   stagger = 0.1,
-  delay = 0,
-  duration = 0.6,
-  distance = 30,
   className = '',
   itemClassName = '',
 }: StaggerFadeInProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const items = container.children;
-    const itemsArray = Array.from(items);
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      gsap.set(items, { opacity: 1, x: 0, y: 0 });
-      return;
-    }
-
-    const directionMap = {
-      up: { y: distance, x: 0 },
-      down: { y: -distance, x: 0 },
-      left: { x: distance, y: 0 },
-      right: { x: -distance, y: 0 },
-      none: { x: 0, y: 0 },
-    };
-
-    const { x, y } = directionMap[direction];
-
-    gsap.set(items, { opacity: 0, x, y });
-
-    const animation = gsap.to(items, {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      duration,
-      delay,
-      stagger,
-      ease: 'power3.out',
-      scrollTrigger: {
-        trigger: container,
-        start: 'top 85%',
-        toggleActions: 'play none none none',
-      },
-    });
-
-    // Fallback: ensure visibility after reasonable delay
-    const totalDuration = delay + duration + (itemsArray.length * stagger) + 2;
-    const fallbackTimeout = setTimeout(() => {
-      itemsArray.forEach((item) => {
-        if (window.getComputedStyle(item).opacity === '0') {
-          gsap.set(item, { opacity: 1, x: 0, y: 0 });
-        }
-      });
-    }, totalDuration * 1000);
-
-    return () => {
-      clearTimeout(fallbackTimeout);
-      animation.kill();
-    };
-  }, [direction, stagger, delay, duration, distance]);
-
   return (
-    <div ref={containerRef} className={className}>
+    <div className={className}>
       {children.map((child, index) => (
-        <div key={index} className={itemClassName}>
-          {child}
-        </div>
+        <FadeIn key={index} direction={direction} delay={index * stagger}>
+          <div className={itemClassName}>{child}</div>
+        </FadeIn>
       ))}
     </div>
   );

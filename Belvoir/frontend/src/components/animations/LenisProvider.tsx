@@ -19,17 +19,26 @@ interface LenisProviderProps {
 
 export const LenisProvider = ({ children }: LenisProviderProps) => {
   const lenisRef = useRef<Lenis | null>(null);
+  const rafRef = useRef<((time: number) => void) | null>(null);
 
   useEffect(() => {
-    // Inicializar Lenis
+    // Verificar preferência de movimento reduzido
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Se usuário prefere movimento reduzido, não inicializar Lenis
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    // Inicializar Lenis com configurações otimizadas
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.0, // Reduzido para scroll mais responsivo
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
+      wheelMultiplier: 0.8, // Reduzido para menor uso de CPU
+      touchMultiplier: 1.5, // Ajustado para touch mais natural
     });
 
     lenisRef.current = lenis;
@@ -37,18 +46,20 @@ export const LenisProvider = ({ children }: LenisProviderProps) => {
     // Integrar com GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
+    // Função do RAF para referência na limpeza
+    rafRef.current = (time: number) => {
       lenis.raf(time * 1000);
-    });
+    };
 
+    gsap.ticker.add(rafRef.current);
     gsap.ticker.lagSmoothing(0);
 
     // Cleanup
     return () => {
+      if (rafRef.current) {
+        gsap.ticker.remove(rafRef.current);
+      }
       lenis.destroy();
-      gsap.ticker.remove((time) => {
-        lenis.raf(time * 1000);
-      });
     };
   }, []);
 

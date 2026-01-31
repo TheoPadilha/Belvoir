@@ -1,12 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, X, Grid, List, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { formatPrice } from '../../data/products';
 import { useProducts, useCategories } from '../../hooks/useProducts';
 import { ProductCard } from '../../components/product/ProductCard';
 import { Button, Select } from '../../components/ui';
-import { AnimatedText, PageTransition } from '../../components/animations';
 import type { Product } from '../../types';
 
 const heroImages = [
@@ -23,10 +21,10 @@ const sortOptions = [
 
 const priceRanges = [
   { value: 'all', label: 'Todos os Preços' },
-  { value: '0-10000', label: 'Até R$ 10.000' },
-  { value: '10000-20000', label: 'R$ 10.000 - R$ 20.000' },
-  { value: '20000-50000', label: 'R$ 20.000 - R$ 50.000' },
-  { value: '50000+', label: 'Acima de R$ 50.000' },
+  { value: '0-500', label: 'Até R$ 500' },
+  { value: '500-1000', label: 'R$ 500 - R$ 1.000' },
+  { value: '1000-2000', label: 'R$ 1.000 - R$ 2.000' },
+  { value: '2000+', label: 'Acima de R$ 2.000' },
 ];
 
 export const ShopPage = () => {
@@ -39,7 +37,7 @@ export const ShopPage = () => {
   const { products, isLoading: isLoadingProducts, error: productsError } = useProducts(100);
   const { categories } = useCategories();
 
-  // Auto-advance carousel
+  // Auto-advance carousel - otimizado
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImage((prev) => (prev + 1) % heroImages.length);
@@ -47,8 +45,8 @@ export const ShopPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const nextImage = () => setCurrentImage((prev) => (prev + 1) % heroImages.length);
-  const prevImage = () => setCurrentImage((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  const nextImage = useCallback(() => setCurrentImage((prev) => (prev + 1) % heroImages.length), []);
+  const prevImage = useCallback(() => setCurrentImage((prev) => (prev - 1 + heroImages.length) % heroImages.length), []);
 
   // Get filters from URL
   const selectedCategory = searchParams.get('categoria') || '';
@@ -61,7 +59,7 @@ export const ShopPage = () => {
 
     let result = [...products];
 
-    // Category filter (só aplica se categorias carregaram)
+    // Category filter
     if (selectedCategory && categories && categories.length > 0) {
       const categoryName = categories.find(
         (c) => c.toLowerCase().replace(/\s+/g, '-') === selectedCategory
@@ -94,14 +92,13 @@ export const ShopPage = () => {
         );
         break;
       default:
-        // relevance - keep original order
         break;
     }
 
     return result;
   }, [products, categories, selectedCategory, selectedSort, selectedPriceRange]);
 
-  const updateFilter = (key: string, value: string) => {
+  const updateFilter = useCallback((key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
     if (value) {
       newParams.set(key, value);
@@ -109,50 +106,30 @@ export const ShopPage = () => {
       newParams.delete(key);
     }
     setSearchParams(newParams);
-  };
+  }, [searchParams, setSearchParams]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchParams({});
-  };
+  }, [setSearchParams]);
 
   const hasActiveFilters = selectedCategory || selectedPriceRange !== 'all';
-
-  // Só mostrar loading se produtos estiverem carregando (categorias podem carregar depois)
   const isLoading = isLoadingProducts;
 
   return (
-    <PageTransition>
-      {/* Título da página */}
-      <div className="container-custom mb-8">
-        <AnimatedText
-          as="h1"
-          className="font-display text-3xl md:text-4xl text-charcoal text-center"
-          animation="fadeUp"
-        >
-          Nossa Coleção
-        </AnimatedText>
-        <p className="text-secondary-500 text-center mt-2">
-          {isLoading ? 'Carregando...' : `${filteredProducts.length} relógios disponíveis`}
-        </p>
-      </div>
-
-      {/* Hero Banner with Carousel - Full Width */}
-      <div className="mb-12">
-        <div className="relative h-[350px] md:h-[450px] overflow-hidden">
-          {/* Carousel Images */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentImage}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7 }}
-              className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: `url('${heroImages[currentImage]}')`,
-              }}
+    <div>
+      {/* Hero Banner with Carousel */}
+      <div className="mb-8">
+        <div className="relative h-[300px] md:h-[400px] overflow-hidden bg-secondary-100">
+          {/* Simple Image Carousel without Framer Motion */}
+          {heroImages.map((img, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 bg-cover bg-center transition-opacity duration-500 ${
+                index === currentImage ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{ backgroundImage: `url('${img}')` }}
             />
-          </AnimatePresence>
+          ))}
 
           {/* Navigation Arrows */}
           <button
@@ -187,11 +164,11 @@ export const ShopPage = () => {
       </div>
 
       {/* Main Content */}
-      <section className="py-12">
+      <section className="py-8">
         <div className="container-custom">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-secondary-100">
-            {/* Left: Filter Toggle & Active Filters */}
+            {/* Left: Filter Toggle */}
             <div className="flex items-center gap-4">
               <Button
                 variant="secondary"
@@ -245,14 +222,11 @@ export const ShopPage = () => {
           </div>
 
           <div className="flex gap-8">
-            {/* Sidebar Filters */}
-            <motion.aside
-              initial={false}
-              animate={{
-                width: isFilterOpen ? 280 : 0,
-                opacity: isFilterOpen ? 1 : 0,
-              }}
-              className="hidden lg:block flex-shrink-0 overflow-hidden"
+            {/* Sidebar Filters - Simple CSS transition */}
+            <aside
+              className={`hidden lg:block flex-shrink-0 overflow-hidden transition-all duration-300 ${
+                isFilterOpen ? 'w-[280px] opacity-100' : 'w-0 opacity-0'
+              }`}
             >
               <div className="w-[280px] space-y-8">
                 {/* Categories */}
@@ -312,7 +286,7 @@ export const ShopPage = () => {
                   </ul>
                 </div>
               </div>
-            </motion.aside>
+            </aside>
 
             {/* Products Grid */}
             <div className="flex-1">
@@ -356,7 +330,7 @@ export const ShopPage = () => {
                   }
                 >
                   {filteredProducts.map((product) => (
-                    <div key={product.id} className="animate-fade-in">
+                    <div key={product.id}>
                       {viewMode === 'grid' ? (
                         <ProductCard product={product} />
                       ) : (
@@ -370,7 +344,7 @@ export const ShopPage = () => {
           </div>
         </div>
       </section>
-    </PageTransition>
+    </div>
   );
 };
 
@@ -381,12 +355,13 @@ const ProductListItem = ({ product }: { product: Product }) => {
   return (
     <a
       href={`/produto/${product.handle}`}
-      className="flex gap-6 p-4 border border-secondary-100 hover:border-secondary-300 transition-colors group"
+      className="flex gap-6 p-4 border border-secondary-100 hover:border-secondary-300 transition-colors group rounded-lg"
     >
-      <div className="w-32 h-32 flex-shrink-0 bg-secondary-50">
+      <div className="w-32 h-32 flex-shrink-0 bg-secondary-50 rounded-lg overflow-hidden">
         <img
           src={product.images[0]?.src}
           alt={product.title}
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </div>

@@ -1,14 +1,8 @@
-import { useEffect, useRef, memo } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { memo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
 import type { Product } from '../../types';
 import { useCart } from '../../hooks/useCart';
-import { StarRating } from '../reviews/StarRating';
-import { getReviewSummaryByProductId } from '../../data/reviews';
-
-gsap.registerPlugin(ScrollTrigger);
 
 interface FeaturedProductsProps {
   products: Product[];
@@ -16,16 +10,15 @@ interface FeaturedProductsProps {
   subtitle?: string;
 }
 
-// Otimização: Memoização para evitar re-renderizações desnecessárias
+// Otimização: Memoização e remoção de GSAP para melhor performance
 export const FeaturedProducts = memo(({
   products,
   title = 'Mais Vendidos',
   subtitle = 'Os relógios favoritos dos nossos clientes',
 }: FeaturedProductsProps) => {
-  const sectionRef = useRef<HTMLElement>(null);
   const { addItem, isUpdating } = useCart();
 
-  const handleAddToCart = async (product: Product, e: React.MouseEvent) => {
+  const handleAddToCart = useCallback(async (product: Product, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -45,41 +38,7 @@ export const FeaturedProducts = memo(({
       image: product.images[0]?.src || '',
       handle: product.handle,
     });
-  };
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      gsap.set('.product-card-featured', { opacity: 1, y: 0 });
-      return;
-    }
-
-    const cards = gsap.utils.toArray<HTMLElement>('.product-card-featured');
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        cards,
-        { y: 50, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top 75%',
-            toggleActions: 'play none none none',
-          },
-        }
-      );
-    }, section);
-
-    return () => ctx.revert();
-  }, [products]);
+  }, [addItem]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -90,7 +49,7 @@ export const FeaturedProducts = memo(({
   };
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-24 bg-secondary-50 overflow-hidden">
+    <section className="py-20 md:py-24 bg-secondary-50 overflow-hidden">
       <div className="container-custom">
         {/* Header - Centered */}
         <div className="text-center mb-12 md:mb-16">
@@ -116,12 +75,11 @@ export const FeaturedProducts = memo(({
             const discount = product.compareAtPrice
               ? Math.round((1 - product.price / product.compareAtPrice) * 100)
               : 0;
-            const reviewSummary = getReviewSummaryByProductId(product.id);
 
             return (
               <div
                 key={product.id}
-                className="product-card-featured group bg-white rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col h-full"
+                className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full"
               >
                 {/* Image */}
                 <Link
@@ -131,7 +89,7 @@ export const FeaturedProducts = memo(({
                   <img
                     src={product.images[0]?.src}
                     alt={product.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
 
@@ -166,12 +124,6 @@ export const FeaturedProducts = memo(({
 
                 {/* Info */}
                 <div className="p-5 md:p-6 flex flex-col flex-1">
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <StarRating rating={reviewSummary.averageRating || 4.8} size="sm" />
-                    <span className="text-xs text-secondary-500">({reviewSummary.totalReviews || 12})</span>
-                  </div>
-
                   {/* Name */}
                   <Link to={`/produto/${product.handle}`} className="flex-1">
                     <h3 className="text-lg font-bold text-charcoal mb-2 hover:text-primary-600 transition-colors line-clamp-1">

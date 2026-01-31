@@ -7,7 +7,6 @@
 
 import shopifyFetch, { extractShopifyId, isShopifyConfigured } from './shopifyClient';
 import type { Product, ProductImage, ProductVariant, Collection } from '../types';
-import { products as mockProducts, categories as mockCategories } from '../data/products';
 
 // ============================================
 // TIPOS SHOPIFY (Respostas da API)
@@ -386,14 +385,14 @@ function mapShopifyCollection(collection: ShopifyCollection): Collection {
 // ============================================
 
 /**
- * Buscar todos os produtos
- * Retorna produtos mock se Shopify não estiver configurado
+ * Buscar todos os produtos do Shopify
+ * Retorna array vazio se Shopify não estiver configurado (para mostrar loading/erro na UI)
  */
 export async function getAllProducts(limit: number = 50): Promise<Product[]> {
-  // Se Shopify não está configurado, retorna mock
+  // Se Shopify não está configurado, retorna array vazio
   if (!isShopifyConfigured()) {
-    console.log('[ProductService] Shopify não configurado, usando dados mock');
-    return mockProducts;
+    console.log('[ProductService] Shopify não configurado');
+    return [];
   }
 
   console.log('[ProductService] Buscando produtos do Shopify...');
@@ -408,8 +407,8 @@ export async function getAllProducts(limit: number = 50): Promise<Product[]> {
     console.log('[ProductService] Resposta recebida, produtos:', data?.products?.edges?.length || 0);
 
     if (!data?.products?.edges) {
-      console.log('[ProductService] Nenhum produto encontrado, usando mock');
-      return mockProducts;
+      console.log('[ProductService] Nenhum produto encontrado');
+      return [];
     }
 
     const products = data.products.edges.map((e) => mapShopifyProduct(e.node));
@@ -418,8 +417,7 @@ export async function getAllProducts(limit: number = 50): Promise<Product[]> {
     return products;
   } catch (error) {
     console.error('[ProductService] Erro ao buscar produtos:', error);
-    console.log('[ProductService] Retornando dados mock devido ao erro');
-    return mockProducts;
+    return [];
   }
 }
 
@@ -427,10 +425,10 @@ export async function getAllProducts(limit: number = 50): Promise<Product[]> {
  * Buscar produto por handle (slug)
  */
 export async function getProductByHandle(handle: string): Promise<Product | null> {
-  // Se Shopify não está configurado, busca no mock
+  // Se Shopify não está configurado, retorna null
   if (!isShopifyConfigured()) {
-    const product = mockProducts.find((p) => p.handle === handle);
-    return product || null;
+    console.log('[ProductService] Shopify não configurado');
+    return null;
   }
 
   const data = await shopifyFetch<{
@@ -448,20 +446,10 @@ export async function getProductsByCollection(
   collectionHandle: string,
   limit: number = 50
 ): Promise<Collection | null> {
-  // Se Shopify não está configurado, filtra do mock
+  // Se Shopify não está configurado, retorna null
   if (!isShopifyConfigured()) {
-    const filtered = mockProducts.filter(
-      (p) => p.category.toLowerCase().replace(/\s+/g, '-') === collectionHandle
-    );
-    if (filtered.length === 0) return null;
-    return {
-      id: collectionHandle,
-      title: filtered[0]?.category || collectionHandle,
-      handle: collectionHandle,
-      description: '',
-      image: '',
-      products: filtered,
-    };
+    console.log('[ProductService] Shopify não configurado');
+    return null;
   }
 
   const data = await shopifyFetch<{
@@ -476,9 +464,10 @@ export async function getProductsByCollection(
  * Buscar todas as coleções (categorias)
  */
 export async function getAllCollections(limit: number = 20): Promise<string[]> {
-  // Se Shopify não está configurado, retorna mock
+  // Se Shopify não está configurado, retorna array vazio
   if (!isShopifyConfigured()) {
-    return mockCategories;
+    console.log('[ProductService] Shopify não configurado');
+    return [];
   }
 
   const data = await shopifyFetch<{
@@ -499,16 +488,10 @@ export async function getAllCollections(limit: number = 20): Promise<string[]> {
  * Buscar produtos por termo de pesquisa
  */
 export async function searchProducts(query: string, limit: number = 20): Promise<Product[]> {
-  // Se Shopify não está configurado, filtra no mock
+  // Se Shopify não está configurado, retorna array vazio
   if (!isShopifyConfigured()) {
-    const searchTerm = query.toLowerCase();
-    return mockProducts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(searchTerm) ||
-        p.description.toLowerCase().includes(searchTerm) ||
-        p.brand.toLowerCase().includes(searchTerm) ||
-        p.tags.some((t) => t.toLowerCase().includes(searchTerm))
-    );
+    console.log('[ProductService] Shopify não configurado');
+    return [];
   }
 
   const data = await shopifyFetch<{
@@ -524,9 +507,10 @@ export async function searchProducts(query: string, limit: number = 20): Promise
  * Buscar produtos em destaque (novos ou featured)
  */
 export async function getFeaturedProducts(limit: number = 8): Promise<Product[]> {
-  // Se Shopify não está configurado, retorna os primeiros do mock
+  // Se Shopify não está configurado, retorna array vazio
   if (!isShopifyConfigured()) {
-    return mockProducts.slice(0, limit);
+    console.log('[ProductService] Shopify não configurado');
+    return [];
   }
 
   // Busca produtos com tag "featured" ou os mais recentes
@@ -556,13 +540,6 @@ export async function getRelatedProducts(
   // Primeiro busca o produto atual
   const product = await getProductByHandle(productHandle);
   if (!product) return [];
-
-  // Se Shopify não está configurado, filtra do mock
-  if (!isShopifyConfigured()) {
-    return mockProducts
-      .filter((p) => p.category === product.category && p.handle !== productHandle)
-      .slice(0, limit);
-  }
 
   // Busca produtos da mesma categoria
   const collection = await getProductsByCollection(

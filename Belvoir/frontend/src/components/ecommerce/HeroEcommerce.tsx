@@ -1,95 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import type { Product } from '../../types';
-import heroWatch from '../../assets/images/watches/hero-watch.jpg';
 
 interface HeroEcommerceProps {
   product?: Product;
+  isLoading?: boolean;
 }
 
-export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
-  const mainRef = useRef<HTMLElement>(null);
-  const outerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [isAnimated, setIsAnimated] = useState(true); // Start visible by default
+export const HeroEcommerce = ({ product, isLoading = false }: HeroEcommerceProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Default product data if none provided - using local watch image
-  const heroProduct = product || {
-    id: 'hero-product',
-    handle: 'belvoir-premium-2026',
-    title: 'Belvoir Premium 2026',
-    price: 24900,
-    compareAtPrice: 32500,
-    images: [{ src: heroWatch, alt: 'Relógio Belvoir Premium' }],
-    shortDescription: 'Onde o design encontra a precisão. Cada relógio é uma obra de arte que transcende o tempo.',
-    tags: ['novo', 'destaque'],
-  };
+  // Se está carregando ou não tem produto, mostrar loading
+  if (isLoading || !product) {
+    return (
+      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-charcoal via-secondary-900 to-charcoal -mt-32 lg:-mt-36 pt-32 lg:pt-36">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-500" />
+          <p className="text-white/70 text-lg">Carregando...</p>
+        </div>
+      </section>
+    );
+  }
 
-  const discount = heroProduct.compareAtPrice
-    ? Math.round((1 - heroProduct.price / heroProduct.compareAtPrice) * 100)
+  const discount = product.compareAtPrice
+    ? Math.round((1 - product.price / product.compareAtPrice) * 100)
     : 0;
-
-  useEffect(() => {
-    const main = mainRef.current;
-    const outer = outerRef.current;
-    const inner = innerRef.current;
-
-    if (!main || !outer || !inner) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      setIsAnimated(true);
-      return;
-    }
-
-    gsap.set(main, { perspective: 650 });
-
-    const outerRX = gsap.quickTo(outer, 'rotationX', { duration: 0.8, ease: 'power3.out' });
-    const outerRY = gsap.quickTo(outer, 'rotationY', { duration: 0.8, ease: 'power3.out' });
-    const innerX = gsap.quickTo(inner, 'x', { duration: 0.8, ease: 'power3.out' });
-    const innerY = gsap.quickTo(inner, 'y', { duration: 0.8, ease: 'power3.out' });
-
-    const handlePointerMove = (e: PointerEvent) => {
-      const xPercent = e.clientX / window.innerWidth;
-      const yPercent = e.clientY / window.innerHeight;
-
-      outerRX(gsap.utils.interpolate(15, -15, yPercent));
-      outerRY(gsap.utils.interpolate(-15, 15, xPercent));
-      innerX(gsap.utils.interpolate(-30, 30, xPercent));
-      innerY(gsap.utils.interpolate(-30, 30, yPercent));
-    };
-
-    const handlePointerLeave = () => {
-      outerRX(0);
-      outerRY(0);
-      innerX(0);
-      innerY(0);
-    };
-
-    main.addEventListener('pointermove', handlePointerMove);
-    main.addEventListener('pointerleave', handlePointerLeave);
-
-    // Entry animation
-    gsap.from(outer, {
-      scale: 0,
-      opacity: 0,
-      duration: 1.5,
-      ease: 'back.out(1.7)',
-      delay: 0.3,
-    });
-
-    requestAnimationFrame(() => {
-      setIsAnimated(true);
-    });
-
-    return () => {
-      main.removeEventListener('pointermove', handlePointerMove);
-      main.removeEventListener('pointerleave', handlePointerLeave);
-    };
-  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -100,10 +36,7 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
   };
 
   return (
-    <section
-      ref={mainRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-charcoal via-secondary-900 to-charcoal -mt-32 lg:-mt-36 pt-32 lg:pt-36"
-    >
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-charcoal via-secondary-900 to-charcoal -mt-32 lg:-mt-36 pt-32 lg:pt-36">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(184,115,51,0.3),transparent_50%)]" />
@@ -111,63 +44,46 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
 
       <div className="container-custom py-12 lg:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column - 3D Product */}
-          <div
-            ref={outerRef}
-            className={`relative order-2 lg:order-1 transition-all duration-1000 ${
-              isAnimated ? 'opacity-100 scale-100' : 'opacity-100 scale-100'
-            }`}
-            style={{ transformStyle: 'preserve-3d' }}
-          >
-            <div ref={innerRef} className="relative">
+          {/* Left Column - Product Image (Mobile: aparece depois do texto) */}
+          <div className="relative order-2 lg:order-1">
+            <div className="relative">
+              {/* Main product image */}
               <img
-                src={heroProduct.images[0]?.src}
-                alt={heroProduct.title}
+                src={product.images[0]?.src}
+                alt={product.title}
                 onLoad={() => setImageLoaded(true)}
-                className={`w-full max-w-md lg:max-w-lg mx-auto drop-shadow-2xl rounded-2xl transition-opacity duration-500 ${
+                className={`w-full max-w-md lg:max-w-lg mx-auto rounded-2xl transition-opacity duration-300 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
                 style={{
-                  filter: 'drop-shadow(0 50px 100px rgba(184, 115, 51, 0.4))',
-                  transformStyle: 'preserve-3d',
+                  filter: 'drop-shadow(0 30px 60px rgba(184, 115, 51, 0.3))',
                 }}
               />
 
-              {/* Fallback loading placeholder */}
+              {/* Loading placeholder */}
               {!imageLoaded && (
-                <div className="w-full max-w-md lg:max-w-lg mx-auto aspect-square bg-secondary-800/50 rounded-2xl flex items-center justify-center">
-                  <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-full max-w-md lg:max-w-lg mx-auto aspect-square bg-secondary-800/50 rounded-2xl flex items-center justify-center absolute inset-0">
+                  <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
 
-              {/* Glow effect */}
-              <div
-                className="absolute inset-0 bg-gradient-to-br from-primary-500/20 to-primary-600/20 blur-3xl -z-10"
-                style={{ transform: 'translateZ(-100px)' }}
-              />
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-primary-600/10 blur-2xl -z-10 rounded-full scale-75" />
             </div>
           </div>
 
-          {/* Right Column - Copy + CTA */}
+          {/* Right Column - Copy + CTA (Mobile: aparece primeiro) */}
           <div className="text-center lg:text-left order-1 lg:order-2">
             {/* Badge/Tag */}
-            {heroProduct.tags?.includes('novo') && (
-              <div
-                className={`inline-flex items-center gap-2 bg-primary-500/20 border border-primary-500/30 rounded-full px-4 py-2 mb-6 transition-all duration-700 ${
-                  isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                }`}
-              >
+            {product.tags?.includes('novo') && (
+              <div className="inline-flex items-center gap-2 bg-primary-500/20 border border-primary-500/30 rounded-full px-4 py-2 mb-6">
                 <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
                 <span className="text-primary-300 text-sm font-medium">Novo Lançamento</span>
               </div>
             )}
 
             {/* Title */}
-            <h1
-              className={`text-5xl md:text-6xl lg:text-7xl font-display text-white mb-6 leading-tight transition-all duration-700 delay-100 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
-            >
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display text-white mb-6 leading-tight">
               Elegância
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-500">
@@ -176,34 +92,22 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
             </h1>
 
             {/* Description */}
-            <p
-              className={`text-xl text-secondary-300 mb-4 transition-all duration-700 delay-200 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-            >
+            <p className="text-xl text-secondary-300 mb-4">
               Coleção Premium 2026
             </p>
-            <p
-              className={`text-lg text-secondary-400 mb-8 max-w-md mx-auto lg:mx-0 transition-all duration-700 delay-300 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-            >
-              {heroProduct.shortDescription}
+            <p className="text-lg text-secondary-400 mb-8 max-w-md mx-auto lg:mx-0">
+              {product.shortDescription || product.description?.slice(0, 150)}
             </p>
 
             {/* Price */}
-            <div
-              className={`flex items-baseline gap-3 mb-8 justify-center lg:justify-start transition-all duration-700 delay-400 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
+            <div className="flex items-baseline gap-3 mb-8 justify-center lg:justify-start">
               <span className="text-4xl md:text-5xl font-bold text-white">
-                {formatPrice(heroProduct.price)}
+                {formatPrice(product.price)}
               </span>
-              {heroProduct.compareAtPrice && (
+              {product.compareAtPrice && (
                 <>
                   <span className="text-xl md:text-2xl text-secondary-500 line-through">
-                    {formatPrice(heroProduct.compareAtPrice)}
+                    {formatPrice(product.compareAtPrice)}
                   </span>
                   <span className="bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">
                     -{discount}%
@@ -213,24 +117,13 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
             </div>
 
             {/* CTAs */}
-            <div
-              className={`flex flex-col sm:flex-row gap-4 mb-8 justify-center lg:justify-start transition-all duration-700 delay-500 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
+            <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center lg:justify-start">
               <Link
-                to={`/produto/${heroProduct.handle}`}
-                className="group relative px-8 py-4 bg-white text-charcoal rounded-full text-lg font-bold overflow-hidden hover:scale-105 transition-all duration-300"
+                to={`/produto/${product.handle}`}
+                className="group px-8 py-4 bg-white text-charcoal rounded-full text-lg font-bold hover:bg-primary-500 hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
               >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Comprar Agora
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="absolute inset-0 z-10 flex items-center justify-center gap-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  Comprar Agora
-                  <ArrowRight className="w-5 h-5" />
-                </span>
+                Comprar Agora
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
 
               <Link
@@ -242,11 +135,7 @@ export const HeroEcommerce = ({ product }: HeroEcommerceProps) => {
             </div>
 
             {/* Trust badges */}
-            <div
-              className={`flex flex-wrap gap-4 md:gap-6 text-sm text-secondary-400 justify-center lg:justify-start transition-all duration-700 delay-600 ${
-                isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
+            <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-secondary-400 justify-center lg:justify-start">
               <div className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
                 <span>Frete Grátis</span>
